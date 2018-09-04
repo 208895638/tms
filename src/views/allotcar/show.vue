@@ -1,0 +1,3470 @@
+<template>
+  <div class="app-container AllotcarAdd">
+      <div class="top">
+    <el-button class="page-btn-group" size="mini" @click="editInsert"><router-link to="/common/allotcar/add">新增</router-link></el-button>
+    <el-button class="page-btn-group" size="mini" @click="editEave" v-show="!disabledInput">保存</el-button>
+    <!-- <el-button class="page-btn-group" size="mini">保存并打印</el-button> -->
+    <el-button class="page-btn-group" size="mini" v-show="!disabledInput">取消</el-button>
+    <el-button class="page-btn-group" size="mini" @click="fache">发车</el-button>
+    <el-button class="page-btn-group" size="mini" @click="editUpdate">修改</el-button>
+    <el-button class="page-btn-group" size="mini" @click="editDelete">删除</el-button>
+    <el-select v-model="Status"  placeholder="打印">
+      <el-option
+            v-for="item in print"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+          </el-option>
+      
+      </el-select>
+      
+    <el-button class="page-btn-group" size="mini">上传附件</el-button>
+  
+      <el-tabs  type="card" @tab-click="handleClick">
+          <el-tab-pane label="本车清单" ></el-tab-pane>
+    <el-tab-pane label="派车" ></el-tab-pane>
+    <el-tab-pane  label="添加运单"></el-tab-pane>
+
+  </el-tabs>
+ </div>
+     <div v-if="tab_show==0" class="tableMaxHeight">
+      <el-table
+                ref="multipleTable"
+                :data="tableData"
+                size="small"
+                border
+                class="aa1"
+                show-summary
+                style="width: 100%"
+                
+                >
+                <el-table-column
+                    type="selection"
+                    width="60">
+                </el-table-column>
+                <el-table-column
+                    label="序号"
+                    type='index'
+                    width="60">
+                </el-table-column>
+                 <el-table-column :show-overflow-tooltip="true"  v-for="item in tableColumns" v-if="choosenColumns.indexOf(item.label) > -1" :key="item.prop" :prop="item.prop" :label="item.label" :width="item.width">
+                            <template slot-scope="scope">
+                                <div v-if="scope.$index === 0 && openColumnSearch">
+                                    <el-input   v-model="columnSearch[scope.column.property]" size="mini" @keyup.enter.native="handleColumnSearch"></el-input>
+                                </div>
+                                <span v-else>{{ scope.row[scope.column.property] }}</span>
+                            </template>
+                 </el-table-column>
+
+                
+            </el-table>
+            <el-footer class="Distribution-footer" >
+                    <el-col :span="24" style="text-align:center;">
+                        <el-button type="text" size="mini" @click="dialogChooseColumnVisible = true">列选择</el-button>
+                        <el-button type="text" size="mini" @click="toggleColumnSearch">列搜索</el-button>
+                        <el-button type="text" size="mini">导出</el-button>
+                    </el-col>
+                </el-footer>
+                <el-dialog :visible.sync="dialogChooseColumnVisible" title="列选择">
+                    <el-checkbox-group v-model="choosenColumns" class="ac-checkbox-group flex-cloumn">
+                    <el-checkbox v-for="column in tableColumns" :label="column.label" :key="column.label">{{column.label}}</el-checkbox>
+                    </el-checkbox-group>
+                </el-dialog>
+     </div>
+
+<div class="edit-page-modular" v-if="tab_show==1">
+    <el-row class="edit-page-modular-allotcar">
+        <el-col :span="4">
+          <el-input class="input-group" v-model="dispatching.contractNumber" v-bind:disabled="disabledInput" disabled value="xxxxxxxxx">
+            <label class="radio-label" slot="prepend" >合同编号: </label>
+          </el-input>
+        </el-col>
+        <el-col :span="4">
+            <label class="radio-label" >派车状态: </label>
+            <el-select v-model="dispatching.dispatchingState" disabled  placeholder="请选择" style="width:110px;">
+              <el-option 
+              v-for="item in transportState" 
+              :key="item.value" 
+              :label="item.Departure_State_Name" 
+              :value="item.Departure_State_Id"></el-option>
+            </el-select>
+        </el-col>
+        <el-col :span="4">
+          
+          <el-input disabled v-model.trim="dispatching.originator"><label class="radio-label" slot="prepend" >制 单 人 : </label></el-input>
+        </el-col>
+        <el-col :span="5">
+          <label class="radio-label" >发货网点: </label>
+          <el-select v-model="dispatching.site"  v-bind:disabled="disabledInput" filterable placeholder="请选择">
+              <el-option
+              v-for="item in customerList" 
+              :key="item.value"
+              :label="item.Org_name"
+              :value="item.Org_id">
+              </el-option>
+          </el-select>
+        </el-col>
+        <el-col :span="6">
+        <label class="radio-label" >发车日期: </label>
+        <el-date-picker type="date" v-model="dispatching.date" style="width:150px;padding-left: 30px" placeholder="选择日期"></el-date-picker>
+        </el-col>
+    </el-row>
+  
+    <el-row class="edit-page-modular-allotcar">
+        <div>&nbsp;&nbsp;调度信息：</div>
+        <el-col :span="4">
+          <label class="radio-label">&nbsp;&nbsp;委托类型: </label>
+            <el-select v-bind:disabled="disabledInput" v-model="dispatching.transport_value" placeholder="请选择" style="width:110px;">
+              <el-option 
+              v-for="item in transportState1" 
+              :key="item.value" 
+              :label="item.Departure_Consigntype_Name" 
+              :value="item.Departure_Consigntype_Id"></el-option>
+            </el-select>
+        </el-col>
+        <el-col :span="4">
+          <label class="radio-label">&nbsp;&nbsp;承 运 商 : </label>
+          <el-select v-bind:disabled="disabledInput" v-model="dispatching.carrier" placeholder="请选择" style="width:110px;">
+              <el-option 
+              v-for="item in CarrierList" 
+              :key="item.value" 
+              :label="item.metadata_carrier.carrier_name" 
+              :value="item.metadata_carrier.carrier_id"></el-option>
+            </el-select>
+          
+        </el-col>
+        <el-col :span="4">
+          <label class="radio-label">&nbsp;&nbsp;车 牌 号 : </label>
+          <el-select v-bind:disabled="disabledInput" @change="selectInfo" v-model="dispatching.number" placeholder="请选择" style="width:110px;">
+              <el-option 
+              v-for="item in VehicleList" 
+              :key="item.value" 
+              :label="item.v.vehicle_platenumber" 
+              :value="item.v.vehicle_platenumber"></el-option>
+            </el-select>
+          
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" v-model="dispatching.driver" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >驾 驶 员: </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" v-model="dispatching.phone" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >联系电话: </label></el-input>
+        </el-col>
+    </el-row>
+    <el-row class="edit-page-modular-allotcar">
+        <el-col :span="12">
+          <el-input class="input-group" v-model="dispatching.remarks" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >备　　注: </label></el-input>
+        </el-col>
+    </el-row>
+
+    <el-row class="edit-page-modular-allotcar">
+        <div>&nbsp;&nbsp;本单费用：</div>
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.xf" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >现付驾驶员: </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.df" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >到付驾驶员: </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.hf" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >回付驾驶员: </label></el-input>
+        </el-col>
+    </el-row>
+    <el-row class="edit-page-modular-allotcar">
+        <el-col :span="4">
+          <el-input class="input-group" v-model.number="result.kahao" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >油卡卡号: </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group"  v-model.number="result.commany" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >油卡公司: </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.yk" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >油卡驾驶员: </label></el-input>
+        </el-col>
+    </el-row>
+    <el-row class="edit-page-modular-allotcar">
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney"  v-model.number="result.fb" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >封 布 费 : </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.bx" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >保 险 费 : </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.zx" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >装 卸 费 : </label></el-input>
+        </el-col>
+    </el-row>
+
+    <el-row class="edit-page-modular-allotcar">
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.ld" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >落 地 费 : </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" @change="CalculationMoney" v-model.number="result.other" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >其他费用: </label></el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input class="input-group" v-model.trim="result.explain"  v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >其他费用说明: </label></el-input>
+        </el-col>
+    </el-row>
+
+    <el-row class="edit-page-modular-allotcar">
+        <el-col :span="12">
+          <el-input class="input-group" v-model="result.moneyTotal" v-bind:disabled="disabledInput"><label class="radio-label" slot="prepend" >费用合计: </label></el-input>
+        </el-col>
+    </el-row>
+
+
+</div>
+ 
+
+<el-row :gutter="10" class="sub-container flex-1" v-if="tab_show==2">
+    <div class="sub_hear" ref="sub_hear">
+    <el-row :gutter="20">
+            <el-col :span="20" :offset="2">
+            <el-form size="small" :inline="true"  class="form-wrapper">
+
+            <el-row :gutter="10">
+            <el-col :span="9"> <el-form-item label="快速增加">
+                  <el-input v-model="formInline.numberLeft" @keyup.enter.native="WaybillSelectInputLeft"  style="width:80px;"   ></el-input>
+              </el-form-item>
+
+              <el-button  type="text"    icon="el-icon-arrow-right"  @click="leftitem" v-bind:disabled="disabledInput"    ></el-button>
+              <el-button  type="text"   icon="el-icon-d-arrow-right" @click="leftall"   v-bind:disabled="disabledInput"   ></el-button>
+              </el-col>
+            <el-col :span="9">  <el-form-item label="快速删除">
+                  <el-input v-model="formInline.numberRight" @keyup.enter.native="WaybillSelectInputRight"   style="width:80px;" ></el-input>
+              </el-form-item>
+              <el-button   type="text"  icon="el-icon-arrow-left"   v-bind:disabled="disabledInput"   ></el-button>
+              <el-button   type="text"  icon="el-icon-d-arrow-left"   v-bind:disabled="disabledInput"    ></el-button>
+              <!-- <el-button   type="text"  icon="el-icon-arrow-left" @click="rightitem"   v-bind:disabled="disabledInput"   ></el-button>
+              <el-button   type="text"  icon="el-icon-d-arrow-left" @click="rightall"   v-bind:disabled="disabledInput"    ></el-button> -->
+              </el-col>
+              <el-col :span="6">
+                
+                <el-button  @click="add_adds" v-bind:disabled="disabledInput" >添加卸货点</el-button>
+              </el-col>
+            </el-row>
+            </el-form>
+
+            </el-col>
+    </el-row>
+    </div>
+    <el-col class="overflow-x-auto " :span="12">
+        <div class="left">
+       
+        <el-table
+          size="small"
+          ref="multipleTable_list"
+          
+          :data="tableData1"
+          @cell-click="split_single"
+          @selection-change="handleSelectionChange_list"
+          
+          tooltip-effect="dark"
+          border
+          height="300">
+          <el-table-column
+              type="selection"
+              width="60">
+          </el-table-column>
+          <el-table-column
+                        label="序号"
+                        type="index">
+                    </el-table-column>
+            <el-table-column show-overflow-tooltip  v-for="item in tableColumns" v-if="choosenColumns.indexOf(item.label) > -1" :key="item.prop" :prop="item.prop" :label="item.label" :width="item.width">
+              <template slot-scope="scope">
+                  <div v-if="scope.$index === 0 && openColumnSearch">
+                      <el-input   v-model="columnSearch[scope.column.property]" size="mini" @keyup.enter.native="handleColumnSearch"></el-input>
+                  </div>
+                  <span v-else>{{ scope.row[scope.column.property] }}</span>
+              </template>
+              </el-table-column>
+                          
+        </el-table>
+        <el-footer class="ac-footer  d-flex justify-content-center">
+            <span>
+                <el-button type="text" size="mini" @click="dialogChooseColumnVisible = true">列选择1</el-button>
+                <el-button type="text" size="mini" @click="toggleColumnSearch">列搜索</el-button>
+                <el-button type="text" size="mini">导出</el-button>
+            </span>
+            
+        </el-footer>
+       
+        <el-dialog :visible.sync="dialogChooseColumnVisible" title="列选择">
+                    <el-checkbox-group v-model="choosenColumns" class="ac-checkbox-group flex-cloumn">
+                    <el-checkbox v-for="column in tableColumns" :label="column.label" :key="column.label">{{column.label}}</el-checkbox>
+                    </el-checkbox-group>
+        </el-dialog>
+        </div>  
+                </el-col>
+                <el-col class="flex-cloumn right" :span="12">
+                    <el-row class="posi-rela right_r1" style="  margin-bottom: 10px">
+                        
+                        <el-table
+                             
+                            ref="multipleTable"
+                            :data="tableData2"
+                            size="small"
+                            @select="handleCurrentClick"
+                            @selection-change='handleCurrentChange'
+                            @select-all="changeall"
+                            border
+                            width="100%"
+                            height="150">
+                            <!-- <el-table-column
+                                type="selection"
+                                width="60">
+                            </el-table-column> -->
+                            <el-table-column label="选择" width="60" >
+                            <template slot-scope="scope">
+                              <el-radio :disabled="scope.row.site==''" v-model="preItem" @change="selectedRedio(scope.row,scope.$index)" :label="scope.$index">&nbsp;</el-radio>
+                            </template>
+                          </el-table-column>
+                            <el-table-column
+                                label="序号"
+                                prop='index'
+                                width="60">
+                            </el-table-column>
+                            <el-table-column
+                                label="卸货网点"
+                                prop='site'
+                                width="180">
+                                <template slot-scope="scope">
+                                   <!-- <el-input size="mini" v-model="scope.row.site" placeholder=""></el-input> -->
+                                   <el-select v-bind:disabled="disabledInput" v-model="scope.row.site" @change="bb" filterable placeholder="请选择">
+                                        <el-option
+                                        v-for="item in customerList" 
+                                        :key="item.value"
+                                        :label="item.Org_name"
+                                        :value="item.Org_id">
+                                        </el-option>
+                                    </el-select>
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                label="单数"
+                                prop='num'
+                                width="100">
+                            </el-table-column>
+                            <el-table-column
+                                label="操作"
+                                width="100">
+                                <template slot-scope="scope">
+                                   <el-button
+                                   size="mini"
+                                   v-bind:disabled="disabledInput"
+                                   @click="handleDelete(scope.$index, tableData2)">删除</el-button>
+                           
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-row>
+                    <div class="right_r2">
+                    <el-row class="overflow-x-auto flex-1 "  >
+                         <el-table
+                            size="small"
+                            ref="multipleTable3"
+                            :data="tableData3"
+                            @selection-change='handleCurrentChange_tab3'
+                            tooltip-effect="dark"
+                            border
+                            show-summary
+                            height="150">
+                            <el-table-column
+                              type="selection"
+                              width="60">
+                          </el-table-column>
+                            <el-table-column
+                                label="序号"
+                                prop='index'
+                                width="60">
+                            </el-table-column>
+                            
+                              <el-table-column  show-overflow-tooltip  v-for="item in tableColumns" v-if="choosenColumns1.indexOf(item.label) > -1" :key="item.prop" :prop="item.prop" :label="item.label" :width="item.width">
+                            <template slot-scope="scope">
+                                <div v-if="scope.$index === 0 && openColumnSearch1">
+                                    <el-input   v-model="columnSearch1[scope.column.property]" size="mini" @keyup.enter.native="handleColumnSearch1"></el-input>
+                                </div>
+                                <span v-else>{{ scope.row[scope.column.property] }}</span>
+                            </template>
+                            </el-table-column>
+                    
+                        </el-table>
+                        <el-footer class="ac-footer">
+                    <el-col :span="24">
+                        <el-button type="text" size="mini" @click="dialogChooseColumnVisible1 = true">列选择</el-button>
+                        <el-button type="text" size="mini" @click="toggleColumnSearch1">列搜索</el-button>
+                        <el-button type="text" size="mini">导出</el-button>
+                    </el-col>
+                </el-footer>
+                <el-dialog :visible.sync="dialogChooseColumnVisible1" title="列选择">
+                    <el-checkbox-group v-model="choosenColumns1" class="ac-checkbox-group flex-cloumn">
+                    <el-checkbox v-for="column in tableColumns1" :label="column.label" :key="column.label">{{column.label}}</el-checkbox>
+                    </el-checkbox-group>
+                </el-dialog>
+                 </el-row>
+                </div>
+       
+    </el-col>
+</el-row>
+
+<el-dialog title="" :visible.sync="dialogFormVisible"  >
+ 
+<el-row :gutter="20">
+  <el-col :span="8">
+    <el-input class="input-group"  v-model="form.name" >
+            <label class="radio-label" slot="prepend" >提货人 </label>
+          </el-input>
+  </el-col>
+ <el-col :span="8">
+    <el-input class="input-group"  v-model="form.sid" >
+            <label class="radio-label" slot="prepend" >收货人身份证号 </label>
+    </el-input>
+  </el-col> 
+  <el-col :span="8">
+    <el-input class="input-group"  v-model="form.tid" >
+            <label class="radio-label"  slot="prepend">提货人身份证号 </label>
+    </el-input>
+  </el-col>
+ 
+</el-row>
+
+
+<el-row :gutter="20">
+  <el-col :span="24">
+    <el-input class="input-group"  v-model="form.bz"   >
+            <label class="radio-label"  slot="prepend">提货人身份证号 </label>
+    </el-input>    
+
+  </el-col>
+</el-row>
+
+
+<el-row :gutter="20">
+  <el-col :span="8">
+    <el-input class="input-group"  v-model="form.price" >
+            <label class="radio-label"  slot="prepend">实付进仓费 </label>
+    </el-input>    
+  </el-col>
+ <el-col :span="8">
+    <el-input class="input-group"  v-model="form.adds" >
+            <label class="radio-label"  slot="prepend">进仓费操作网点 </label>
+    </el-input>   
+  </el-col> 
+  <el-col :span="8">
+    <el-input class="input-group"  v-model="form.admin" >
+            <label class="radio-label" slot="prepend" >进仓费操作人 </label>
+    </el-input>    
+  </el-col>
+ 
+</el-row>
+ 
+  <div slot="footer" class="dialog-footer">
+    <el-button @click="dialogFormVisible = false">取 消</el-button>
+    <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+  </div>
+</el-dialog>
+
+
+<el-dialog  :visible.sync="dialogTableVisible">
+    <!-- <el-table
+      size="small"
+      ref="split"
+      :data="tableData4"
+      @selection-change="handleSelectionChange"
+      tooltip-effect="dark"
+      border
+      height="100%">
+      <el-table-column
+          type="selection"
+          width="60">
+      </el-table-column>
+      <el-table-column
+          label="序号"
+          prop='index'
+          width="60">
+      </el-table-column>
+      <el-table-column
+          label="运单号"
+          prop="id"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="到站"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="目的网点"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发货单位"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="品名"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="件数"
+          prop="nums"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="重量（公斤）"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="体积（立方）"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="应收合计"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="托运商单号"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="开单日期"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="运单状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发站"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发货网点"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="运输方式"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发货人"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发货人电话"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发货地址"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="交接方式"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="收货单位"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="收货人"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="收货人电话"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="收货地址"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="提货费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="运费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="送货费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="装卸费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="声明价值"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="保价费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="包装费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="仓储费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="其他费用"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="预付进仓费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="实付进仓费"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="结算状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="回扣状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="回扣"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="应结算金额（应收合计-回扣）"
+          min-width="200">
+      </el-table-column>
+      <el-table-column
+          label="付款方式"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="现付状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="现付"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="到付状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="到付"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发货月结状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="发货月结"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="收货月结状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="收货月结"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="欠付状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="欠付"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="回单付状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="回单付"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="货到打卡状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="货到打卡"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="贷款扣状态"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="贷款扣"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="制单人"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="回单份数"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="备注"
+          min-width="100">
+      </el-table-column>
+    </el-table> -->
+    <el-table
+      size="small"
+      ref="split"
+      :data="tableData4"
+      @selection-change="handleSelectionChange"
+      tooltip-effect="dark"
+      border
+      height="100%">
+      <el-table-column
+          type="selection"
+          width="60">
+      </el-table-column>
+      <el-table-column
+          label="序号"
+          type="index">
+      </el-table-column>
+      <el-table-column label="件数" width="100" align="center">
+        <template slot-scope="scope">
+          <el-input class="input-group" v-model.lazy="scope.row.goods_piece"></el-input>
+        </template>
+      </el-table-column>
+      <el-table-column
+          label="重量（公斤）"
+          min-width="100">
+          <template slot-scope="scope">
+          <el-input class="input-group" v-model.trim="scope.row.goods_weight"></el-input>
+        </template>
+      </el-table-column>
+      <el-table-column
+          label="体积（立方）"
+          min-width="100">
+          <template slot-scope="scope">
+          <el-input class="input-group" v-model.trim="scope.row.goods_volume"></el-input>
+        </template>
+      </el-table-column>
+      <el-table-column
+          label="品名"
+          prop="goods_name"
+          min-width="100">
+      </el-table-column>
+      <el-table-column
+          label="包装"
+          prop="goods_package"
+          min-width="100">
+      </el-table-column>
+      
+      
+  </el-table>
+
+  <div slot="footer" class="dialog-footer">
+    <el-button @click="dialogTableVisible  = false">取 消</el-button>
+    <el-button type="primary" @click="save">确 定</el-button>
+  </div>
+</el-dialog>
+
+  </div>
+</template>
+
+<script>
+import { parseTime } from '@/utils'
+import axios from 'axios'
+import url from '@/js/common.js'
+import storage from '@/js/localstorage.js'
+
+const mockData = [{
+  index: '1',
+  contractId: '18004001',
+  startDate: '2018-7-19',
+  prop1: '已发出',
+  prop2: 'C点',
+  prop3: 'A点',
+  prop4: '沪A123456',
+  prop5: '19250987908',
+  prop6: '李四',
+  prop7: '200',
+  prop8: '20',
+  prop9: '40'
+}]
+const tableColumns = [
+
+  {
+    label: '运单号',
+    prop: 'manifest_code',
+    width: 100
+  },
+  {
+    label: '到站',
+    prop: 'arrival_city',
+    width: 100
+  },
+  {
+    label: '目的网点',
+    prop: 'arrival_org_name',
+    width: 100
+  },
+  {
+    label: '发货单位',
+    prop: 'consigner_unit',
+    width: 100
+  },
+  {
+    label: '品名',
+    prop: 'goods_name',
+    width: 100
+  },
+  {
+    label: '件数',
+    prop: 'goods_piece',
+    width: 100
+  },
+  {
+    label: '重量（公斤）',
+    prop: 'goods_weight',
+    width: 100
+  },
+  {
+    label: '体积（立方）',
+    prop: 'goods_volume',
+    width: 100
+  },
+  {
+    label: '应收合计',
+    prop: 'total_charge',
+    width: 100
+  },
+  {
+    label: '托运商单号',
+    prop: 'shipper_code',
+    width: 100
+  },
+  {
+    label: '开单日期',
+    prop: 'shipping_date',
+    width: 100
+  },
+  {
+    label: '运单状态',
+    prop: 'manifest_state_name',
+    width: 100
+  },
+  {
+    label: '发站',
+    prop: 'departure_city',
+    width: 100
+  },
+  {
+    label: '发货网点',
+    prop: 'departure_org_id',
+    width: 100
+  },
+  {
+    label: '运输方式',
+    prop: 'transportation_type',
+    width: 100
+  },
+  {
+    label: '发货人',
+    prop: 'consigner_contact',
+    width: 100
+  },
+  {
+    label: '发货人电话',
+    prop: 'consigner_phone',
+    width: 100
+  },
+  {
+    label: '发货地址',
+    prop: 'consigner_address',
+    width: 100
+  },
+  {
+    label: '交接方式',
+    prop: 'transfer_mode_name',
+    width: 100
+  },
+  {
+    label: '收货单位',
+    prop: 'consignee_unit',
+    width: 100
+  },
+  {
+    label: '收货人',
+    prop: 'consignee_contact',
+    width: 100
+  },
+  {
+    label: '收货人电话',
+    prop: 'consignee_phone',
+    width: 100
+  },
+  {
+    label: '收货地址',
+    prop: 'consignee_address',
+    width: 100
+  },
+  {
+    label: '提货费',
+    prop: 'pickup_charge',
+    width: 100
+  },
+  {
+    label: '运费',
+    prop: 'freight_charge',
+    width: 100
+  },
+  {
+    label: '送货费',
+    prop: 'delivery_charge',
+    width: 100
+  },
+  {
+    label: '装卸费',
+    prop: 'handling_charge',
+    width: 100
+  },
+  {
+    label: '声明价值',
+    prop: 'insurance_amount',
+    width: 100
+  },
+  {
+    label: '保价费',
+    prop: 'insurance_charge',
+    width: 100
+  },
+  {
+    label: '包装费',
+    prop: 'packing_charge',
+    width: 100
+  },
+  {
+    label: '仓储费',
+    prop: 'storage_charge',
+    width: 100
+  },
+  {
+    label: '其他费用',
+    prop: 'other_charge',
+    width: 100
+  },
+  {
+    label: '预付进仓费',
+    prop: 'entryfee_prepaid',
+    width: 100
+  },
+  {
+    label: '实付进仓费',
+    prop: 'entryfee_collect',
+    width: 100
+  },
+  // {
+  //   label: '结算状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  // {
+  //   label: '回扣状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '回扣',
+    prop: 'rebate_commission',
+    width: 100
+  },
+  {
+    label: '应结算金额（应收合计-回扣）',
+    prop: 'directiveMoney',
+    width: 100
+  },
+  {
+    label: '付款方式',
+    prop: 'payment_mode_name',
+    width: 100
+  },
+  // {
+  //   label: '现付状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '现付',
+    prop: 'xianfu',
+    width: 100
+  },
+  // {
+  //   label: '到付状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '到付',
+    prop: 'daofu',
+    width: 100
+  },
+  // {
+  //   label: '发货月结状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '发货月结',
+    prop: 'fahuoyuejie',
+    width: 100
+  },
+  // {
+  //   label: '收货月结状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '收货月结',
+    prop: 'shouhuoyuejie',
+    width: 100
+  },
+  // {
+  //   label: '欠付状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '欠付',
+    prop: 'qianfu',
+    width: 100
+  },
+  // {
+  //   label: '回单付状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '回单付',
+    prop: 'huidanfu',
+    width: 100
+  },
+  // {
+  //   label: '货到打卡状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '货到打卡',
+    prop: 'huodaodaka',
+    width: 100
+  },
+  // {
+  //   label: '贷款扣状态',
+  //   prop: '',
+  //   width: 100
+  // },
+  {
+    label: '贷款扣',
+    prop: 'huokuankou',
+    width: 100
+  },
+  {
+    label: '制单人',
+    prop: 'user_id',
+    width: 100
+  },
+  {
+    label: '回单份数',
+    prop: 'reciept_type',
+    width: 100
+  },
+  {
+    label: '备注',
+    prop: 'manifestdtl_comment',
+    width: 100
+  }
+]
+const tableColumns_n = [
+  {
+    label: '序号',
+    prop: 'index',
+    width: 60
+  },
+  {
+    label: '运单号',
+    prop: 'id',
+    width: 100
+  },
+  {
+    label: '到站',
+    prop: 'driver_name',
+    width: 100
+  },
+  {
+    label: '目的网点',
+    prop: 'to_adds',
+    width: 100
+  },
+  {
+    label: '发货单位',
+    prop: 'delivery',
+    width: 100
+  },
+  {
+    label: '品名',
+    prop: 'pro_name',
+    width: 100
+  },
+  {
+    label: '件数',
+    prop: 'nums',
+    width: 100
+  },
+  {
+    label: '重量（公斤）',
+    prop: 'weight',
+    width: 100
+  },
+  {
+    label: '体积（立方）',
+    prop: 'volume',
+    width: 100
+  },
+  {
+    label: '应收合计',
+    prop: 'combined',
+    width: 100
+  },
+  {
+    label: '托运商单号',
+    prop: 'shippers_number',
+    width: 100
+  },
+  {
+    label: '开单日期',
+    prop: 'date_start',
+    width: 100
+  },
+  {
+    label: '运单状态',
+    prop: 'state',
+    width: 100
+  },
+  {
+    label: '发站',
+    prop: 'prop1',
+    width: 100
+  },
+  {
+    label: '发货网点',
+    prop: 'prop2',
+    width: 100
+  },
+  {
+    label: '运输方式',
+    prop: 'prop3',
+    width: 100
+  },
+  {
+    label: '发货人',
+    prop: 'prop4',
+    width: 100
+  },
+  {
+    label: '发货人电话',
+    prop: 'prop5',
+    width: 100
+  },
+  {
+    label: '发货地址',
+    prop: 'prop6',
+    width: 100
+  },
+  {
+    label: '交接方式',
+    prop: 'prop7',
+    width: 100
+  },
+  {
+    label: '收货单位',
+    prop: 'prop8',
+    width: 100
+  },
+  {
+    label: '收货人',
+    prop: 'prop9',
+    width: 100
+  },
+  {
+    label: '收货人电话',
+    prop: 'prop10',
+    width: 100
+  },
+  {
+    label: '收货地址',
+    prop: 'prop11',
+    width: 100
+  },
+  {
+    label: '提货费',
+    prop: 'prop12',
+    width: 100
+  },
+  {
+    label: '运费',
+    prop: 'prop13',
+    width: 100
+  },
+  {
+    label: '送货费',
+    prop: 'prop14',
+    width: 100
+  },
+  {
+    label: '装卸费',
+    prop: 'prop15',
+    width: 100
+  },
+  {
+    label: '声明价值',
+    prop: 'prop16',
+    width: 100
+  },
+  {
+    label: '保价费',
+    prop: 'prop17',
+    width: 100
+  },
+  {
+    label: '包装费',
+    prop: 'prop18',
+    width: 100
+  },
+  {
+    label: '仓储费',
+    prop: 'prop19',
+    width: 100
+  },
+  {
+    label: '其他费用',
+    prop: 'prop20',
+    width: 100
+  },
+  {
+    label: '预付进仓费',
+    prop: 'prop21',
+    width: 100
+  },
+  {
+    label: '实付进仓费',
+    prop: 'prop22',
+    width: 100
+  },
+  {
+    label: '结算状态',
+    prop: 'prop23',
+    width: 100
+  },
+  {
+    label: '回扣状态',
+    prop: 'prop24',
+    width: 100
+  },
+  {
+    label: '回扣',
+    prop: 'prop25',
+    width: 100
+  },
+  {
+    label: '应结算金额（应收合计-回扣）',
+    prop: 'prop26',
+    width: 100
+  },
+  {
+    label: '付款方式',
+    prop: 'prop27',
+    width: 100
+  },
+  {
+    label: '现付状态',
+    prop: 'prop28',
+    width: 100
+  },
+  {
+    label: '现付',
+    prop: 'prop29',
+    width: 100
+  },
+  {
+    label: '到付状态',
+    prop: 'prop30',
+    width: 100
+  },
+  {
+    label: '到付',
+    prop: 'prop31',
+    width: 100
+  },
+  {
+    label: '发货月结状态',
+    prop: 'prop32',
+    width: 100
+  },
+  {
+    label: '发货月结',
+    prop: 'prop33',
+    width: 100
+  },
+  {
+    label: '收货月结状态',
+    prop: 'prop34',
+    width: 100
+  },
+  {
+    label: '收货月结',
+    prop: 'prop35',
+    width: 100
+  },
+  {
+    label: '欠付状态',
+    prop: 'prop36',
+    width: 100
+  },
+  {
+    label: '欠付',
+    prop: 'prop37',
+    width: 100
+  },
+  {
+    label: '回单付状态',
+    prop: 'prop38',
+    width: 100
+  },
+  {
+    label: '回单付',
+    prop: 'prop39',
+    width: 100
+  },
+  {
+    label: '货到打卡状态',
+    prop: 'prop40',
+    width: 100
+  },
+  {
+    label: '货到打卡',
+    prop: 'prop41',
+    width: 100
+  },
+  {
+    label: '贷款扣状态',
+    prop: 'prop42',
+    width: 100
+  },
+  {
+    label: '贷款扣',
+    prop: 'prop43',
+    width: 100
+  },
+  {
+    label: '制单人',
+    prop: 'prop44',
+    width: 100
+  },
+  {
+    label: '回单份数',
+    prop: 'prop45',
+    width: 100
+  },
+  {
+    label: '备注',
+    prop: 'prop46',
+    width: 100
+  }
+]
+const tableColumns1 = tableColumns_n
+let date = new Date(), _this = this
+const o = {
+    'y': date.getFullYear(), // 年份
+    'M': date.getMonth() + 1, // 月份
+    'd': date.getDate(), // 日
+    'h': date.getHours(), // 小时
+    'm': date.getMinutes(), // 分
+    's': date.getSeconds(), // 秒
+    'q': Math.floor((date.getMonth() + 3) / 3), // 季度
+    'S': date.getMilliseconds() // 毫秒
+  }, time = o.y + '-' + o.M + '-' + o.d + ' ' + o.h + ':' + o.m + ':' + o.s
+export default {
+  name: 'lists',
+  data() {
+    return {
+      tableData: mockData.slice(),
+      // 列选择dialog开关
+      dialogChooseColumnVisible: false,
+      // 列表表头数据
+      tableColumns: tableColumns,
+      choosenColumns: [...tableColumns.map(column => column.label)],
+      openColumnSearch: false,
+      columnSearch: {},
+
+      // 列选择dialog开关
+      dialogChooseColumnVisible_n: false,
+      dialogChooseColumnVisible1: false,
+      // 列表表头数据
+      tableColumns_n: tableColumns_n,
+      tableColumns1: tableColumns1,
+      choosenColumns_n: [...tableColumns_n.map(column => column.label)],
+      choosenColumns1: [...tableColumns1.map(column => column.label)],
+      openColumnSearch_n: false,
+      openColumnSearch1: false,
+      columnSearch_n: {},
+      columnSearch1: {},
+      tableData1_so: [],
+
+      tableData3_so: [],
+
+      formInline: { numberLeft: '', numberRight: '' }, // 表单
+      preItem: 1,
+      dialogFormVisible: false,
+      tableColumns: tableColumns,
+      tableData: mockData.slice(),
+      Status: '',
+      form: {
+        name: '',
+        sid: '',
+        tid: '',
+        bz: '',
+        price: 1000,
+        adds: '',
+        admin: ''
+      },
+      print: [{
+        value: '打印',
+        label: '打印'
+      }, {
+        value: '发车清单',
+        label: '发车清单'
+      }, {
+        value: '随车清单',
+        label: '随车清单'
+      }],
+      tab_show: 0,
+      dialogTableVisible: false,
+      tableData1: [
+        {
+          index: 1,
+          id: 18040001,
+          nums: 10
+        },
+        {
+          index: 2,
+          id: 18040002,
+          nums: 10
+        },
+        {
+          index: 3,
+          id: 18040003,
+          nums: 10
+        },
+        {
+          index: 4,
+          id: 18040004,
+          nums: 10
+        },
+        {
+          index: 5,
+          id: 18040005,
+          nums: 10
+        }, {
+          index: 6,
+          id: 18040006,
+          nums: 10
+        }, {
+          index: 7,
+          id: 18040007,
+          nums: 10
+        }, {
+          index: 8,
+          id: 18040008,
+          nums: 10
+        }
+      ],
+      tableData2: [
+
+      ],
+      tableData3: [
+      ],
+      tableData4: [
+        {
+          index: 1,
+          id: 18040001,
+          nums: 5
+        },
+        {
+          index: 2,
+          id: 18040001,
+          nums: 10
+        },
+        {
+          index: 3,
+          id: 18040001,
+          nums: 6
+        },
+        {
+          index: 4,
+          id: 18040001,
+          nums: 7
+        },
+        {
+          index: 5,
+          id: 18040001,
+          nums: 10
+        }, {
+          index: 6,
+          id: 18040001,
+          nums: 10
+        }, {
+          index: 7,
+          id: 18040001,
+          nums: 10
+        }, {
+          index: 8,
+          id: 18040001,
+          nums: 10
+        }
+      ],
+      result: {
+        tuoyunshang: '666',
+        tuoyuntime: '2018-10-01',
+        tuoyunfazhan: '北京',
+        tuoyundaozhan: '上海',
+        tuoyundaozhanwangdian: '',
+
+        // ----------
+        payme_value: '1', // 付款方式
+        xf: '',
+        df: '',
+        hf: '',
+        yk: '',
+        fb: '',
+        bx: '',
+        zx: '',
+        ld: '',
+        other: '',
+
+        // ----------
+        list: [
+          {
+            numbers: '123456789',
+            tuoyun_number: 'Qc111111111',
+            startdate: 'Qc111111111',
+            state: '111',
+            send_station: '222',
+            arrive_station: '333',
+            send_dot: '444',
+            arrive_dot: '555',
+            type: '666',
+            company: '777',
+            consignor: '888',
+            consignor_phone: '999'
+          }
+        // {
+        //     numbers: '223456789',
+        //     tuoyun_number: 'Qc111111111',
+        //     startdate: 'Qc111111111',
+        //     state: '111',
+        //     send_station: '222',
+        //     arrive_station: '333',
+        //     send_dot: '444',
+        //     arrive_dot: '555',
+        //     type: '666',
+        //     company: '777',
+        //     consignor: '888',
+        //     consignor_phone: '999',
+        // }
+        ]
+      },
+      paymeMode: [{
+        value: '1',
+        label: '免费'
+      }, {
+        value: '2',
+        label: '到付'
+      }, {
+        value: '3',
+        label: '现付'
+      }],
+
+      transportState_value: '1',
+      transportState: [{
+        value: '1',
+        label: '已揽收'
+      }, {
+        value: '2',
+        label: '三方发车'
+      }],
+      transport_value: '',
+      transport_options: [{
+        value: '公路',
+        label: '公路'
+      }, {
+        value: '铁路',
+        label: '铁路'
+      }],
+
+      disabledInput: true,
+      listLoading: false,
+      downloadLoading: false,
+      filename: '',
+      autoWidth: true,
+
+      editId: false,
+      isEdit: false, // 编辑显示 新增隐藏
+      Create_Org_ID: '',
+      Create_User_ID: '',
+      transportState1: '',
+      editId: false,
+      isEdit: false, // 编辑显示 新增隐藏
+      customerList: '', // 发货网点
+      dispatching: { // 派车
+        contractNumber: "", // 合同编号
+        dispatchingState: 10, // 派车状态
+        originator: JSON.parse(storage.getStorage('currentUser')).displayName, // 制单人
+        site: '', // 发货网点
+        date: o.y + '-' + o.M + '-' + o.d, // 发车日期
+        transport_value: 1, // 委托类型
+        carrier: '', // 承运商
+        number: '', // 车牌号
+        driver: '', // 驾驶员
+        phone: '', // 联系电话
+        remarks: '' // 备注
+      },
+      pageSize: 10, // 分页
+      currentPage: 1,
+      materielSize: 1,
+      ids: '',
+      table2RadioSelect: '', // 第二个table radio选中获取那一行的结果
+      table2RadioSelectIndex: '', // 第二个table radio选中获取那一行对应的下标
+      tableData1Info: '', // 第一个table 的info明细
+      tableData1InfoOld: '', // 没改之前的第一个table 的info明细
+      table3Info: [], // 第三个table的明细
+      CarrierList: '', // 承运商列表
+      VehicleList: '', // 车辆列表
+      deleteArr:[],
+      departure_inventory_ids:[]
+    }
+  },
+  created() {
+    const loginInfo = JSON.parse(storage.getStorage('currentUser'))
+
+    this.Create_Org_ID = loginInfo.orgId
+    this.Create_User_ID = loginInfo.userId
+    this.dispatching.site = loginInfo.orgId
+
+    this.fetchData()
+    this.tableData1_so = this.tableData1.slice()
+    this.tableData3_so = this.tableData3.slice()
+    this.getCompanyList() // 获取发货网点
+    this.getTransportState() // 获取委托类型
+    this.getDispatchingState() // 获取派车状态
+    this.getCarrierList() // 获取承运商数据
+    this.getVehicleList() // 获取车牌号
+  },
+  watch: {
+    result() {
+    }
+  },
+  mounted() { // keepalive之后 每次进入页面都会执行次方法
+    // this.GetAllManifest();       // 获取新增左侧待配载列表
+    this.GetAllManifestInfo() // 获取新增左侧待配载列表明细
+  },
+  updated: function() {
+    this.$nextTick(function() {
+      if (this.tab_show == 2) {
+        const boxHeight = document.querySelector('body').clientHeight
+        const top = document.querySelector('.top').clientHeight
+        const top1 = document.querySelector('.sub_hear').clientHeight
+
+        const areaBoxHeight = boxHeight - 84 - top - top1 - 30
+        document.querySelector('.ac-footer').style.height = '30px'
+
+        document.querySelector('.left .el-table').style.height = areaBoxHeight + 'px'
+        document.querySelector('.right').style.height = areaBoxHeight + 'px'
+        document.querySelector('.right_r1').style.height = areaBoxHeight / 2 - 10 + 'px'
+        document.querySelector('.right_r2').style.height = areaBoxHeight / 2 + 'px'
+        document.querySelector('.left .el-table__body-wrapper').style.height = areaBoxHeight - 20 - 25 + 'px'
+        document.querySelector('.left .el-table__body-wrapper').style.overflowY = 'auto'
+
+        document.querySelector('.right_r1 .el-table__body-wrapper').style.height = areaBoxHeight / 2 - 25 + 'px'
+        document.querySelector('.right_r1 .el-table__body-wrapper').style.overflowY = 'auto'
+
+        document.querySelector('.right_r1 .el-table').style.height = areaBoxHeight / 2 - 10 + 'px'
+        document.querySelector('.right_r2 .el-table').style.height = areaBoxHeight / 2 + 'px'
+        document.querySelector('.right_r2 .el-table__body-wrapper').style.height = areaBoxHeight / 2 - 30 + 'px'
+        document.querySelector('.right_r2 .el-table__body-wrapper').style.overflowY = 'auto'
+      }
+    })
+  },
+  methods: {
+    fache(){ // 点击发车执行的操作
+      const id = this.$route.params.id,_this = this;
+      axios.post(url.apiUrl() + '/api/Departure/UpdateDeparture?departure_id='+id)
+      .then(function(val) {
+        if (val.data.error === '') {
+          _this.$message({
+            type:"success",
+            message:"发车成功!"
+          })
+          _this.$router.push({ path: '/operationFlow/allotcar' });
+        } else {
+          _this.$message.error(val.data.error)
+        }
+      })
+      .catch(function(data) {
+        _this.$message.error(data.data.error)
+      })
+    },
+    pageSizeChange(val) { //   选择每页展示的页数大小
+      this.pageSize = val
+      this.GetAllManifest()
+    },
+    currentSizeChange(val) { // 当前选择第几页
+      this.currentPage = val
+      this.GetAllManifest()
+    },
+    GetAllManifest() { // 获取左侧待配载列表
+      const _this = this
+      const data1 = {
+        orgid: _this.Create_Org_ID
+      }
+      axios.post(url.apiUrl() + '/api/Departure/DepartureLeftList', data1)
+        .then(function(val) {
+          if (val.data.error === '') {
+            _this.tableData1 = val.data.data.map(ele => {
+              const m = ele
+              const obj = {
+                'directiveMoney': (m.total_charge ? m.total_charge : 0) - (m.rebate_commission ? m.rebate_commission : 0),
+                ...m
+              }
+              return obj
+            })
+
+            // _this.materielSize = val.data.data.total
+          } else {
+            _this.$message.error(val.data.error)
+          }
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    GetAllManifestInfo() { // 获取左侧待配载列表明细
+      const _this = this
+      const data1 = {
+        orgid: _this.Create_Org_ID,
+        departure_id: '',
+        queryType: 1
+      }
+      axios.post(url.apiUrl() + '/api/Departure/GetDepartureLeftDetail', data1)
+        .then(function(val) {
+          if (val.data.error === '') {
+            const dataInfo = val.data.data
+            _this.tableData1InfoOld = dataInfo.concat()
+            storage.setSessionStorage('leftTable', dataInfo)
+            storage.setSessionStorage('leftTableAll', dataInfo)
+            _this.tableData1Info = dataInfo.concat()
+            _this.addInfo(dataInfo)
+            _this.materielSize = val.data.data.total
+          } else {
+            _this.$message.error(val.data.error)
+          }
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    addInfo(val, table) { // 左侧明细数据相加
+      const infoAdd = val.map((ele, index) => {
+        let m = ele.stocks, manifest = ele.manifest
+        let goods_name = '', goods_package = '', goods_piece = 0, goods_weight = 0, goods_volume = 0// 品名，包装，件数，重量，体积
+        m.map((item, i) => {
+          if (i == (m.length - 1)) {
+            goods_name += (item.goods_name == '' || item.goods_name == null ? '' : item.goods_name)
+            goods_package += (item.goods_package == '' || item.goods_package == null ? '' : item.goods_package)
+            goods_piece = parseFloat(goods_piece) + (item.goods_piece == '' || item.goods_piece == null ? '' : parseFloat(item.goods_piece))
+            goods_weight = parseFloat(goods_weight) + (item.goods_weight == '' || item.goods_weight == null ? '' : parseFloat(item.goods_weight))
+            goods_volume = parseFloat(goods_volume) + (item.goods_volume == '' || item.goods_volume == null ? '' : parseFloat(item.goods_volume))
+          } else {
+            goods_name += (item.goods_name == '' || item.goods_name == null ? '' : item.goods_name) + '/'
+            goods_package += (item.goods_package == '' || item.goods_package == null ? '' : item.goods_package) + '/'
+            goods_piece = parseFloat(goods_piece) + (item.goods_piece == '' || item.goods_piece == null ? '' : parseFloat(item.goods_piece))
+            goods_weight = parseFloat(goods_weight) + (item.goods_weight == '' || item.goods_weight == null ? '' : parseFloat(item.goods_weight))
+            goods_volume = parseFloat(goods_volume) + (item.goods_volume == '' || item.goods_volume == null ? '' : parseFloat(item.goods_volume))
+          }
+        })
+        manifest.goods_name = goods_name
+        manifest.goods_package = goods_package
+        manifest.goods_piece = goods_piece
+        manifest.goods_weight = goods_weight
+        manifest.goods_volume = goods_volume
+        return manifest
+      })
+
+      if (table) {
+        this.tableData3 = infoAdd.concat()
+      } else {
+        this.tableData1 = infoAdd.concat()
+      }
+    },
+    addInfo4(val) { // 左侧明细数据相加
+      const infoAdd = val.map((ele, index) => {
+        let m = ele.stocks, manifest = ele.manifest
+        let goods_name = '', goods_package = '', goods_piece = 0, goods_weight = 0, goods_volume = 0// 品名，包装，件数，重量，体积
+        m.map((item, i) => {
+          if (i == (m.length - 1)) {
+            goods_name += (item.goods_name == '' || item.goods_name == null ? '' : item.goods_name)
+            goods_package += (item.goods_package == '' || item.goods_package == null ? '' : item.goods_package)
+            goods_piece += (item.goods_piece == '' || item.goods_piece == null ? '' : parseFloat(item.goods_piece))
+            goods_weight += (item.goods_weight == '' || item.goods_weight == null ? '' : parseFloat(item.goods_weight))
+            goods_volume += (item.goods_volume == '' || item.goods_volume == null ? '' : parseFloat(item.goods_volume))
+          } else {
+            goods_name += (item.goods_name == '' || item.goods_name == null ? '' : item.goods_name) + '/'
+            goods_package += (item.goods_package == '' || item.goods_package == null ? '' : item.goods_package) + '/'
+            goods_piece += (item.goods_piece == '' || item.goods_piece == null ? '' : parseFloat(item.goods_piece))
+            goods_weight += (item.goods_weight == '' || item.goods_weight == null ? '' : parseFloat(item.goods_weight))
+            goods_volume += (item.goods_volume == '' || item.goods_volume == null ? '' : parseFloat(item.goods_volume))
+          }
+        })
+        manifest.goods_name = goods_name
+        manifest.goods_package = goods_package
+        manifest.goods_piece = goods_piece
+        manifest.goods_weight = goods_weight
+        manifest.goods_volume = goods_volume
+        return manifest
+      })
+      this.tableData1 = infoAdd
+    },
+    getVehicleList() { // 获取车牌号
+      const _this = this
+      const data1 = {
+        'Page': 1,
+        'Rows': 100
+      }
+      axios.post(url.apiUrl() + '/api/Vehicle/VehicleList', data1)
+        .then(function(val) {
+          _this.VehicleList = val.data.data.rows
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    selectInfo(val) {
+      this.VehicleList.map(ele => {
+        if (ele.v.vehicle_platenumber == val) {
+          this.dispatching.driver = ele.v.driver_name
+          this.dispatching.phone = ele.v.driver_phone
+        }
+      })
+    },
+    getCarrierList() { // 获取承运商数据
+      const _this = this
+      const data1 = {
+        'Page': 1,
+        'Rows': 100
+      }
+      axios.post(url.apiUrl() + '/api/Carrier/CarrierList', data1)
+        .then(function(val) {
+          _this.CarrierList = val.data.data.rows
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    getCompanyList() { // 获取发货网点
+      const _this = this
+      axios.post(url.apiUrl() + '/api/MetadataOrg/GeOrgs')
+        .then(function(val) {
+          _this.customerList = val.data.data
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    getDispatchingState() { // 获取派车状态
+      const _this = this
+      axios.get(url.apiUrl() + '/api/Departure/GetDeparture_States')
+        .then(function(val) {
+          _this.transportState = val.data.data
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    getTransportState() { // 获取委托类型
+      const _this = this
+      axios.get(url.apiUrl() + '/api/Departure/GetDeparture_ConsignTypes')
+        .then(function(val) {
+          _this.transportState1 = val.data.data
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    WaybillSelectInputLeft() {
+      const arr = new Array()
+      this.tableData1.forEach((item, index) => {
+        if (item.id == this.formInline.numberLeft) {
+          this.tableData3.push(item)
+        } else {
+          arr.push(item)
+        }
+      })
+
+      this.tableData1 = arr
+    },
+    WaybillSelectInputRight() {
+      const arr = new Array()
+      this.tableData3.forEach((item, index) => {
+        if (item.id == this.formInline.numberRight) {
+          this.tableData1.push(item)
+        } else {
+          arr.push(item)
+        }
+      })
+
+      this.tableData3 = arr
+    },
+    // 点击列查询按钮
+    toggleColumnSearch() {
+      if (this.openColumnSearch) {
+        if (this.tableData[0].isColumnSearch) {
+          this.tableData.shift()
+        }
+        this.openColumnSearch = false
+        this.columnSearch = {}
+      } else {
+        this.openColumnSearch = true
+        if (!this.tableData[0].isColumnSearch) {
+          this.tableData.unshift({
+            isColumnSearch: true
+          })
+        }
+      }
+    },
+
+    // 进行列查询
+    handleColumnSearch() {
+      const values = Object.values(this.columnSearch)
+      const isEmpty = values.every(value => {
+        return typeof value === undefined || value === ''
+      }) || values.length === 0
+
+      if (isEmpty) {
+        this.columnSearch = {}
+        const newData = mockData.slice()
+        newData.unshift({
+          isColumnSearch: true
+        })
+        this.tableData = newData
+      }
+
+      this.tableData = this.tableData.filter(item => {
+        if (item.isColumnSearch) {
+          return true
+        }
+        for (const key in this.columnSearch) {
+          if (this.columnSearch[key] === '') {
+            // do nothing
+          } else if (this.columnSearch[key] instanceof Date) {
+            const date = new Date(this.columnSearch[key])
+            const formatDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+            if (item[key] !== formatDate) {
+              return false
+            }
+          } else if (item[key].indexOf(this.columnSearch[key]) < 0) {
+            return false
+          }
+        }
+        return true
+      })
+    },
+
+    // 点击列查询按钮
+    toggleColumnSearch_n() {
+      if (this.openColumnSearch_n) {
+        if (this.tableData1[0].isColumnSearch) {
+          this.tableData1.shift()
+        }
+        this.openColumnSearch_n = false
+        this.columnSearch = {}
+      } else {
+        this.openColumnSearch_n = true
+        if (!this.tableData1[0].isColumnSearch) {
+          this.tableData1.unshift({
+            isColumnSearch: true
+          })
+        }
+      }
+    },
+    // 点击列查询按钮
+    toggleColumnSearch1() {
+      if (this.tableData3.length <= 0) {
+        return false
+      }
+      if (this.openColumnSearch1) {
+        if (this.tableData3[0].isColumnSearch) {
+          this.tableData3.shift()
+        }
+        this.openColumnSearch1 = false
+        this.columnSearch1 = {}
+      } else {
+        this.openColumnSearch1 = true
+        if (!this.tableData3[0].isColumnSearch) {
+          this.tableData3.unshift({
+            isColumnSearch: true
+          })
+        }
+      }
+    },
+
+    // 进行列查询
+    handleColumnSearch_n() {
+      const values = Object.values(this.columnSearch_n)
+      const isEmpty = values.every(value => {
+        return typeof value === undefined || value === ''
+      }) || values.length === 0
+
+      if (isEmpty) {
+        this.columnSearch_n = {}
+        const newData = this.tableData1_so.slice()
+        newData.unshift({
+          isColumnSearch: true
+        })
+        this.tableData1 = newData
+      }
+
+      this.tableData1 = this.tableData1.filter(item => {
+        if (item.isColumnSearch) {
+          return true
+        }
+        for (const key in this.columnSearch_n) {
+          if (this.columnSearch_n[key] === '') {
+            // do nothing
+          } else if (this.columnSearch_n[key] instanceof Date) {
+            const date = new Date(this.columnSearch_n[key])
+            const formatDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+            if (item[key] !== formatDate) {
+              return false
+            }
+          } else if (item[key].toString().indexOf(this.columnSearch_n[key]) < 0) {
+            return false
+          }
+        }
+        return true
+      })
+    },
+
+    handleColumnSearch1() {
+      const values = Object.values(this.columnSearch1)
+      const isEmpty = values.every(value => {
+        return typeof value === undefined || value === ''
+      }) || values.length === 0
+
+      if (isEmpty) {
+        this.columnSearch1 = {}
+        const newData = this.tableData3_so
+        newData.unshift({
+          isColumnSearch: true
+        })
+        this.tableData3 = newData
+      }
+
+      this.tableData3 = this.tableData3.filter(item => {
+        if (item.isColumnSearch) {
+          return true
+        }
+        for (const key in this.columnSearch1) {
+          if (this.columnSearch1[key] === '') {
+            // do nothing
+          } else if (item[key].toString().indexOf(this.columnSearch1[key]) < 0) {
+            return false
+          }
+        }
+        return true
+      })
+    },
+
+    changeall() {
+      this.$refs.multipleTable.clearSelection()
+      this.preItem = ''
+    },
+    handleCurrentClick(val) {
+      const _this = this
+      let _index = ''
+      let _item = []
+      val.forEach((item, index) => {
+        if (item.index != _this.preItem.index) {
+          _index = item.index
+          _item = item
+        }
+      })
+      if (val.lenght <= 0) {
+        _index = ''
+      }
+      this.preItem = _index
+    },
+    handleCurrentChange(val) {
+      // this.$refs.multipleTable.clearSelection();
+      if (this.preItem.lenght > 0) {
+        // this.multipleSelection = _item;
+        this.$refs.multipleTable.toggleRowSelection(this.tableData2[this.preItem], true)
+      }
+    },
+    // 添加网点
+    add_adds() {
+      let index = 1
+      if (this.tableData2.length > 0) {
+        index = parseInt(this.tableData2[this.tableData2.length - 1].index) + 1
+      }
+      this.tableData2.push({ index: index, site: '', num: 0 })
+    },
+    // 右上角列表删除操作
+    // handleDelete(index, row) {
+    //   if (row[index].num > 0) {
+    //     this.$confirm('该卸货网点下有关联的运单，是否删除卸货点？', '提示', {
+    //       confirmButtonText: '确定',
+    //       cancelButtonText: '取消',
+    //       type: 'warning'
+    //     }).then(() => {
+    //       row.splice(index, 1)
+    //       // this.$message({
+    //       //   type: 'success',
+    //       //   message: '删除成功!'
+    //       // });
+    //     }).catch(() => {
+
+    //     })
+    //   } else {
+    //     row.splice(index, 1)
+    //   }
+    // },
+    // handleCurrentChange_tab3(val) {
+    //   this.tab3_listSelection = val
+    // },
+    // handleSelectionChange_list(val) {
+    //   const _index = -1
+    //   const _addto = []
+    //   if (this.preItem.length <= 0) {
+    //     this.$alert('请勾选卸货网点”', '', {
+    //       confirmButtonText: '确定'
+    //     })
+    //     this.$refs.multipleTable_list.clearSelection()
+    //     return false
+    //   } else {
+    //     this.multipleTable_listSelection = val
+
+    //     // if(val.lenght>0){
+    //     //    this.tableData3.push(val);
+    //     // }
+    //     //  val.forEach((item,index)=>{
+    //     //      _addto.push(item);
+    //     //      _index= this.tableData1.indexOf(item);
+    //     //      this.tableData1.splice(_index,1);
+    //     // });
+    //   }
+    //   //  this.tableData2.forEach((item,index)=>{
+    //   //       this.tableData2[index].num=this.tableData3.length;
+
+    //   //  });
+    // },
+    // leftall() {
+    //   if (this.preItem.length <= 0) {
+    //     this.$alert('请勾选卸货网点”', '', {
+    //       confirmButtonText: '确定'
+    //     })
+
+    //     return false
+    //   }
+    //   const _index = -1
+    //   this.tableData1.forEach((item, index) => {
+    //     this.tableData3.push(item)
+    //   })
+    //   this.tableData3.sort()
+    //   this.tableData2.forEach((item, index) => {
+    //     this.tableData2[index].num = this.tableData3.length
+    //   })
+    //   this.tableData1 = []
+    // },
+    // leftitem() {
+    //   if (this.multipleTable_listSelection == undefined) {
+    //     return
+    //   }
+    //   const toitem = this.multipleTable_listSelection
+    //   let _index = -1
+    //   if (toitem.length > 0) {
+    //     this.multipleTable_listSelection.forEach((item, index) => {
+    //       _index = this.tableData1.indexOf(item)
+    //       this.tableData1.splice(_index, 1)
+    //       this.tableData3.push(item)
+    //     })
+    //     this.tableData3.sort()
+    //     this.tableData2.forEach((item, index) => {
+    //       this.tableData2[index].num = this.tableData3.length
+    //     })
+    //   }
+    // },
+    // rightall() {
+    //   this.tableData3.forEach((item, index) => {
+    //     this.tableData1.push(item)
+    //   })
+    //   this.tableData3 = []
+    //   this.tableData1.sort()
+    //   this.tableData2.forEach((item, index) => {
+    //     this.tableData2[index].num = this.tableData3.length
+    //   })
+    // },
+    // rightitem() {
+    //   if (this.tab3_listSelection == undefined) {
+    //     return
+    //   }
+    //   const toitem = this.tab3_listSelection
+    //   let _index = -1
+    //   if (toitem.length > 0) {
+    //     this.tab3_listSelection.forEach((item, index) => {
+    //       _index = this.tableData3.indexOf(item)
+    //       this.tableData3.splice(_index, 1)
+    //       this.tableData1.push(item)
+    //     })
+    //     this.tableData1.sort()
+    //     this.tableData2.forEach((item, index) => {
+    //       this.tableData2[index].num = this.tableData3.length
+    //     })
+    //   }
+    // },
+    // handleSelectionChange(val) {
+    //   this.splitSelection = val
+    // },
+    // save() {
+    //   let id = ''
+    //   let total = 0
+    //   let obj = []
+    //   let ri = true
+    //   if (this.splitSelection == undefined || this.splitSelection.lenght <= 0) {
+    //     this.$alert('请勾选货物明细”', '', {
+    //       confirmButtonText: '确定'
+    //     })
+    //   } else {
+    //     this.dialogTableVisible = false
+    //     this.splitSelection.forEach((item, index) => {
+    //       total += item.nums
+    //       id = item.id
+    //     })
+    //     // 追加到列表
+    //     this.tableData1.forEach((item, index) => {
+    //       if (item.id == id) {
+    //         if (item.nums <= total) {
+    //           this.tableData1.splice(index, 1)
+    //         } else {
+    //           this.tableData1[index].nums = total - item.nums
+    //         }
+    //         obj = item
+    //       }
+    //     })
+
+    //     this.tableData3.forEach((item, index) => {
+    //       if (item.id == id) {
+    //         this.tableData3[index].nums = total + item.nums
+    //         ri = false
+    //       }
+    //     })
+
+    //     if (ri) {
+    //       obj.nums = total
+
+    //       this.tableData3.push(obj)
+    //     }
+    //   }
+    // },
+    // split_single(row, column, cell, event) {
+    //   if (this.openColumnSearch_n) {
+    //     return false
+    //   }
+    //   if (cell.cellIndex == 2) {
+    //     if (this.preItem.length <= 0) {
+    //       this.$alert('请勾选卸货网点”', '', {
+    //         confirmButtonText: '确定'
+    //       })
+    //       this.$refs.multipleTable_list.clearSelection()
+    //       return false
+    //     } else {
+    //       this.dialogTableVisible = true
+    //     }
+    //   }
+    // },
+    // handleClick(tab, event) {
+    //   this.tab_show = tab.index
+    // },
+    // editInsert() { // 新增
+    //   if (this.editId) {
+
+    //   } else {
+    //     // 清空数据
+    //     this.result = {}
+    //   }
+    // },
+    // editEave() { // 保存
+    //   this.disabledInput = true
+    // },
+    // editUpdate() { // 修改
+    //   this.disabledInput = false
+    // },
+    // editDelete() { // 删除
+    //   this.$confirm('是否删除当前运单', {
+    //     confirmButtonText: '确定',
+    //     cancelButtonText: '取消',
+    //     type: 'warning'
+    //   }).then(() => {
+    //     this.$message({
+    //       type: 'success',
+    //       message: '删除成功!'
+    //     })
+    //   }).catch(() => {
+    //     this.$message({
+    //       type: 'info',
+    //       message: '已取消删除'
+    //     })
+    //   })
+    // },
+    // editTableInsert(row, column, cell, event) {
+    // },
+    // editTableDelete(i) { // 删除列表数据
+    //   this.result.list.splice(i, 1)
+    // },
+    // fetchData() {
+    //   const id = this.$route.params.id
+    //   if (id) {
+    //     // 请求数据
+    //     this.isEdit = true
+    //     this.editId = true
+    //     this.GetDepartureInventory(id)
+    //   } else {
+    //     this.editId = false
+    //     // 新增数据
+    //   }
+    // },
+    // GetDepartureInventory(val) { // 根据路由id获取本车清单
+    //   const _this = this
+    //   axios.get(url.apiUrl() + '/api/Departure/GetDepartureInventory?departure_id=' + val)
+    //     .then(function(val) {
+    //       if (val.data.error === '') {
+    //         _this.tableData = val.data.data
+    //       } else {
+    //         _this.$message.error(val.data.error)
+    //       }
+    //     })
+    //     .catch(function(data) {
+    //       _this.$message.error(data.data.error)
+    //     })
+    // },
+    // formatJson(filterVal, jsonData) {
+    //   return jsonData.map(v => filterVal.map(j => {
+    //     if (j === 'timestamp') {
+    //       return parseTime(v[j])
+    //     } else {
+    //       return v[j]
+    //     }
+    //   }))
+    // }
+    handleDelete(index, row) {
+      if (row[index].num > 0) {
+        this.$confirm('该卸货网点下有关联的运单，是否删除卸货点？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          const leftTableAll = storage.getSessionStorage('leftTableAll')
+          const leftTable = storage.getSessionStorage('leftTable')
+          const data1 = []
+
+          leftTableAll.map(item => {
+            item.stocks.map(i => {
+              row[0].datas.forEach(ele => {
+                if (i.stock_id == ele.stock_id) {
+                  i.goods_piece = ele.goods_piece
+                  const obj = {
+                    manifest: item.manifest,
+                    stocks: {
+                      arrival_warehouselocation_id: ele.arrival_warehouselocation_id,
+                      departure_warehouselocation_id: ele.departure_warehouselocation_id,
+                      goods_name: ele.goods_name,
+                      goods_package: ele.goods_package,
+                      goods_piece: ele.goods_piece,
+                      goods_volume: ele.goods_volume,
+                      goods_weight: ele.goods_weight,
+                      manifest_id: ele.manifest_id,
+                      manifestdtl_id: ele.manifestdtl_id,
+                      mark_ss_removed: ele.mark_ss_removed,
+                      org_id: ele.org_id,
+                      stock_id: ele.stock_id,
+                      stock_state_id: ele.stock_state_id
+                    }
+                  }
+                  data1.push(obj)
+                }
+              })
+            })
+          })
+
+          for (let i = 0; i < row[0].datas.length; i++) {
+            const curManifest = row[0].datas[i]
+            const mId = row[0].datas[i].manifest_id
+            let addManifest = leftTable.find(o => {
+              return o.manifest.manifest_id == mId
+            })
+            if (!addManifest) {
+              const manifest = curManifest
+              const obj = {
+                'manifest_id': manifest.manifest_id,
+                'manifest_code': manifest.manifest_code,
+                'shipper_code': manifest.shipper_code,
+                'shipping_date': manifest.shipping_date,
+                'departure_city': manifest.departure_city,
+                'departure_org_id': manifest.departure_org_id,
+                'manifest_state_id': manifest.manifest_state_id,
+                'arrival_city': manifest.arrival_city,
+                'arrival_org_id': manifest.arrival_org_id,
+                'transportation_type': manifest.transportation_type,
+                'consigner_unit': manifest.consigner_unit,
+                'consigner_contact': manifest.consigner_contact,
+                'consigner_phone': manifest.consigner_phone,
+                'consigner_address': manifest.consigner_address,
+                'consignee_unit': manifest.consignee_unit,
+                'consignee_contact': manifest.consignee_contact,
+                'consignee_phone': manifest.consignee_phone,
+                'consignee_address': manifest.consignee_address,
+                'freight_charge': manifest.freight_charge,
+                'delivery_charge': manifest.delivery_charge,
+                'pickup_charge': manifest.pickup_charge,
+                'handling_charge': manifest.handling_charge,
+                'insurance_amount': manifest.insurance_amount,
+                'insurance_charge': manifest.insurance_charge,
+                'packing_charge': manifest.packing_charge,
+                'storage_charge': manifest.storage_charge,
+                'other_charge': manifest.other_charge,
+                'storage_prepayment': manifest.storage_prepayment,
+                'rebate_commission': manifest.rebate_commission,
+                'rebate_commission_print': manifest.rebate_commission_print,
+                'user_id': manifest.user_id,
+                'transfer_mode': manifest.transfer_mode,
+                'reciept_type': manifest.reciept_type,
+                'manifest_comment': manifest.manifest_comment,
+                'total_charge': manifest.total_charge,
+                'create_user_id': manifest.create_user_id,
+                'create_time': manifest.create_time,
+                'create_org_id': manifest.create_org_id,
+                'edit_user_id': manifest.edit_user_id,
+                'edit_time': manifest.edit_time,
+                'edit_org_id': manifest.edit_org_id,
+                'departure_balance_date': manifest.departure_balance_date,
+                'departure_balance_person': manifest.departure_balance_person,
+                'departure_2ndbalance_date': manifest.departure_2ndbalance_date,
+                'departure_2ndbalance_person': manifest.departure_2ndbalance_person,
+                'entryfee_collect': manifest.entryfee_collect,
+                'arrival_balance_date': manifest.arrival_balance_date,
+                'arrival_balance_person': manifest.arrival_balance_person,
+                'driver_balance_date': manifest.driver_balance_date,
+                'driver_balance_person': manifest.driver_balance_person,
+                'operate_org_id': manifest.operate_org_id,
+                'operate_user_id': manifest.operate_user_id,
+                'operate_date': manifest.operate_date,
+                'departure_org_name': manifest.departure_org_name,
+                'departure_org_code': manifest.departure_org_code,
+                'arrival_org_name': manifest.arrival_org_name,
+                'arrival_org_code': manifest.arrival_org_code,
+                'transportation_type_name': manifest.transportation_type_name,
+                'user_displayname': manifest.user_displayname,
+                'transfer_mode_name': manifest.transfer_mode_name,
+                'reciept_type_name': manifest.reciept_type_name,
+                'create_org_name': manifest.create_org_name,
+                'edit_org_name': manifest.edit_org_name,
+                'edit_user_account': manifest.edit_user_account,
+                'manifest_ids': manifest.manifest_ids,
+                'payment_mode_id': manifest.payment_mode_id,
+                'payment_mode_name': manifest.payment_mode_name,
+                'xianfu': manifest.xianfu,
+                'daofu': manifest.daofu,
+                'qianfu': manifest.qianfu,
+                'huidanfu': manifest.huidanfu,
+                'fahuoyuejie': manifest.fahuoyuejie,
+                'shouhuoyuejie': manifest.shouhuoyuejie,
+                'huokuankou': manifest.huokuankou,
+                'huodaodaka': manifest.huodaodaka,
+                'manifest_state_name': manifest.manifest_state_name
+              }
+              addManifest = {
+                manifest: obj,
+                stocks: []
+              }
+              leftTable.push(addManifest)
+            } else {
+              for (let j = 0; j < leftTable.length; j++) {
+                const stocks = leftTable[j].stocks
+                for (let k = 0; k < stocks.length; k++) {
+                  if (stocks[k].stock_id == curManifest.stock_id) {
+                    stocks[k].goods_piece = parseFloat(stocks[k].goods_piece) + parseFloat(curManifest.goods_piece)
+                    stocks[k].goods_weight = parseFloat(stocks[k].goods_weight) + parseFloat(curManifest.goods_weight)
+                    stocks[k].goods_volume = parseFloat(stocks[k].goods_volume) + parseFloat(curManifest.goods_volume)
+                  }
+                }
+              }
+            }
+          }
+          for (let i = 0; i < row[0].datas.length; i++) {
+            const curManifest = row[0].datas[i]
+            const mId = row[0].datas[i].manifest_id
+            const sId = curManifest.stock_id
+            const leftManifest = leftTable.find(o => {
+              return o.manifest.manifest_id == mId
+            })
+            if (leftManifest) {
+              const letManifestStock = leftManifest.stocks.find(o => {
+                return o.stock_id == sId
+              })
+              if (!letManifestStock) {
+                const stock = {
+                  'stock_id': curManifest.stock_id,
+                  'manifestdtl_id': curManifest.manifestdtl_id,
+                  'manifest_id': curManifest.manifest_id,
+                  'org_id': curManifest.org_id,
+                  'departure_warehouselocation_id': curManifest.departure_warehouselocation_id,
+                  'arrival_warehouselocation_id': curManifest.arrival_warehouselocation_id,
+                  'goods_name': curManifest.goods_name,
+                  'goods_package': curManifest.goods_package,
+                  'goods_piece': curManifest.goods_piece,
+                  'goods_weight': curManifest.goods_weight,
+                  'goods_volume': curManifest.goods_volume,
+                  'stock_state_id': curManifest.stock_state_id,
+                  'mark_ss_removed': curManifest.mark_ss_removed
+                }
+                leftManifest.stocks.push(stock)
+              }
+            }
+          }
+          if(row[index].departure_arrivalorg_id){
+            this.deleteArr.push(row[index].departure_arrivalorg_id);
+          }
+          storage.setSessionStorage('leftTable', leftTable)
+          this.addInfo(leftTable) // 重新渲染左侧列表
+          console.log(row,"row");
+          row[index].datas.forEach(ele =>{
+            this.departure_inventory_ids.push(ele.departure_inventory_id)
+          })
+          console.log("this.departure_inventory_ids",this.departure_inventory_ids);
+          row.splice(index, 1)
+          if ((index - 1) <= 0) {
+            this.table2RadioSelectIndex = 0
+          } else {
+            this.table2RadioSelectIndex = index - 1
+          }
+          this.multipleTable_listSelection = ''
+          this.tableData3 = []
+        }).catch(() => {
+
+        })
+      } else {
+        if(row[index].departure_arrivalorg_id){
+          this.deleteArr.push(row[index].departure_arrivalorg_id);
+        }
+        row[index].datas.forEach(ele =>{
+            this.departure_inventory_ids.push(ele.departure_inventory_id)
+          })
+        row.splice(index, 1);
+      }
+    },
+    handleCurrentChange_tab3(val) {
+      this.tab3_listSelection = val
+    },
+    handleSelectionChange_list(val) {
+      const _index = -1
+      const _addto = []
+      if (this.preItem.length <= 0) {
+        this.$alert('请勾选卸货网点”', '', {
+          confirmButtonText: '确定'
+        })
+        this.$refs.multipleTable_list.clearSelection()
+        return false
+      } else {
+        this.multipleTable_listSelection = val
+      }
+    },
+    leftall() {
+      const _index = -1
+      if (this.preItem.length <= 0) {
+        this.$alert('请勾选卸货网点”', '', {
+          confirmButtonText: '确定'
+        })
+
+        return false
+      }
+      const leftTable = storage.getSessionStorage('leftTable')
+
+      const newTable3 = []
+      leftTable.map(ele => {
+        const data = []
+        ele.stocks.map(item => {
+          const a = Object.assign(item, ele.manifest)
+          data.push(a)
+          newTable3.push(a)
+        })
+      })
+      let datas = this.tableData2[this.table2RadioSelectIndex].datas
+      if (datas == null || datas == undefined || datas == '') {
+        datas = newTable3
+      } else {
+        datas.push(...newTable3)
+      }
+      storage.setSessionStorage('leftTable', [])
+      this.addInfo([])
+      this.tableData2[this.table2RadioSelectIndex].datas = datas
+      this.addTableData3() // 整合table3的数据 把相同的mainfast_id放到一起
+      this.renderTableData3() // 渲染table3 的数据
+      this.getData4Num()
+      this.table3Info = []
+    },
+    leftitem() { // 快速增加
+      if (this.tableData2.length <= 0) {
+        this.$message.error('请先勾选左侧待配载列表!')
+        return
+      }
+      const toitem = this.multipleTable_listSelection.map(ele => {
+        return ele.manifest_id
+      })
+      let table3 = [], _this = this // 对选中的数据进行匹配  把相同的manifest_id取出来放在table3里面
+      const leftTable1 = storage.getSessionStorage('leftTable').forEach(ele => {
+        toitem.forEach(item => {
+          if (item == ele.manifest.manifest_id) {
+            table3.push(ele)
+          }
+        })
+      })
+      // -------------------------------- 这一步是获取改变之后的左侧table 并重新渲染
+      const ids = []
+      table3.filter(item => ids.push(item.manifest.manifest_id))
+      const result = storage.getSessionStorage('leftTable').filter(item => {
+        if (ids.indexOf(item.manifest.manifest_id) == -1) {
+          return item
+        }
+      })
+      storage.setSessionStorage('leftTable', result)
+      this.addInfo(result)
+      const newTable3 = []
+      table3.map(ele => {
+        const data = []
+        ele.stocks.map(item => {
+          const a = Object.assign(item, ele.manifest)
+          data.push(a)
+          this.table3Info.push(a)
+          newTable3.push(a)
+        })
+      })
+
+      let datas = this.tableData2[this.table2RadioSelectIndex].datas
+      if (datas == null || datas == undefined || datas == '') {
+        datas = newTable3
+      } else {
+        datas.push(...newTable3)
+      }
+
+      this.tableData2[this.table2RadioSelectIndex].datas = datas
+      this.addTableData3() // 整合table3的数据 把相同的mainfast_id放到一起
+      this.renderTableData3() // 渲染table3 的数据
+      this.getData4Num()
+      this.table3Info = []
+    },
+    rightall() {
+      this.tableData3.forEach((item, index) => {
+        this.tableData1.push(item)
+      })
+      this.tableData3 = []
+      this.tableData1.sort()
+      this.tableData2.forEach((item, index) => {
+        this.tableData2[index].num = this.tableData3.length
+      })
+    },
+    rightitem() {
+      if (this.tab3_listSelection == undefined) {
+        return
+      }
+      const toitem = this.tab3_listSelection
+      let _index = -1
+      if (toitem.length > 0) {
+        this.tab3_listSelection.forEach((item, index) => {
+          _index = this.tableData3.indexOf(item)
+          this.tableData3.splice(_index, 1)
+          this.tableData1.push(item)
+        })
+        this.tableData1.sort()
+        this.tableData2.forEach((item, index) => {
+          this.tableData2[index].num = this.tableData3.length
+        })
+      }
+    },
+    handleSelectionChange(val) {
+      this.splitSelection = val
+    },
+    // 点击列查询按钮
+    toggleColumnSearch() {
+      if (this.openColumnSearch) {
+        if (this.tableData1[0].isColumnSearch) {
+          this.tableData1.shift()
+        }
+        this.openColumnSearch = false
+        this.columnSearch = {}
+      } else {
+        this.openColumnSearch = true
+        if (!this.tableData1[0].isColumnSearch) {
+          this.tableData1.unshift({
+            isColumnSearch: true
+          })
+        }
+      }
+    },
+    // 点击列查询按钮
+    toggleColumnSearch1() {
+      if (this.tableData3.length <= 0) {
+        return false
+      }
+      if (this.openColumnSearch1) {
+        if (this.tableData3[0].isColumnSearch) {
+          this.tableData3.shift()
+        }
+        this.openColumnSearch1 = false
+        this.columnSearch1 = {}
+      } else {
+        this.openColumnSearch1 = true
+        if (!this.tableData3[0].isColumnSearch) {
+          this.tableData3.unshift({
+            isColumnSearch: true
+          })
+        }
+      }
+    },
+
+    // 进行列查询
+    handleColumnSearch() {
+      const values = Object.values(this.columnSearch)
+      const isEmpty = values.every(value => {
+        return typeof value === undefined || value === ''
+      }) || values.length === 0
+
+      if (isEmpty) {
+        this.columnSearch = {}
+        const newData = this.tableData1_so.slice()
+        newData.unshift({
+          isColumnSearch: true
+        })
+        this.tableData1 = newData
+      }
+
+      this.tableData1 = this.tableData1.filter(item => {
+        if (item.isColumnSearch) {
+          return true
+        }
+        for (const key in this.columnSearch) {
+          if (this.columnSearch[key] === '') {
+            // do nothing
+          } else if (this.columnSearch[key] instanceof Date) {
+            const date = new Date(this.columnSearch[key])
+            const formatDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+            if (item[key] !== formatDate) {
+              return false
+            }
+          } else if (item[key].toString().indexOf(this.columnSearch[key]) < 0) {
+            return false
+          }
+        }
+        return true
+      })
+    },
+
+    handleColumnSearch1() {
+      const values = Object.values(this.columnSearch1)
+      const isEmpty = values.every(value => {
+        return typeof value === undefined || value === ''
+      }) || values.length === 0
+
+      if (isEmpty) {
+        this.columnSearch1 = {}
+        const newData = this.tableData3_so
+        newData.unshift({
+          isColumnSearch: true
+        })
+        this.tableData3 = newData
+      }
+
+      this.tableData3 = this.tableData3.filter(item => {
+        if (item.isColumnSearch) {
+          return true
+        }
+        for (const key in this.columnSearch1) {
+          if (this.columnSearch1[key] === '') {
+            // do nothing
+          } else if (item[key].toString().indexOf(this.columnSearch1[key]) < 0) {
+            return false
+          }
+        }
+        return true
+      })
+    },
+    selectedRedio(val, a) { // 第二个表格中 radio选中执行的事件
+      this.table2RadioSelect = val
+      this.table2RadioSelectIndex = a
+      let datas = this.tableData2[a].datas
+      if (datas == null || datas == undefined || datas == '') {
+        datas = []
+      }
+      const tableData2 = this.tableData2
+      for (let i = 0; i < tableData2.length; i++) {
+        for (let j = i; j < tableData2.length - 1; j++) {
+          if (tableData2[j + 1].site == tableData2[i].site) {
+            this.$message.error('卸货网点不能相同,请更换后重试!')
+            this.preItem = ''
+          }
+        }
+      }
+      this.addTableData3() // 整合table3的数据 把相同的mainfast_id放到一起
+      this.renderTableData3()
+      this.getData4Num()
+      this.table3Info = []
+      // this.tableData2.forEach((ele , index) =>{
+      //   if(index == 0){
+
+      //   }else{
+      //     if(ele.site == val.site){
+
+      //     }
+      //   }
+
+      // })
+      // this.render3(datas);
+      this.tableData3 = datas;
+    },
+    render3(arr) {
+      var map = {}, dest = [] // dest就是处理过后的数据
+      for (let i = 0; i < arr.length; i++) {
+        var ai = arr[i]
+        if (!map[ai.manifest_id]) {
+          dest.push({
+            manifest_id: ai.manifest_id,
+
+            data: [ai]
+          })
+          map[ai.manifest_id] = ai
+        } else {
+          for (let j = 0; j < dest.length; j++) {
+            var dj = dest[j]
+            if (dj.manifest_id == ai.manifest_id) {
+              dj.data.push(ai)
+              break
+            }
+          }
+        }
+      }
+      const arrx = []
+      const xx = dest.map(ele => {
+        var goods_piece = 0, goods_weight = 0, goods_volume = 0
+
+        ele.data.forEach(item => {
+          goods_piece += parseFloat(item.goods_piece)
+          goods_weight += parseFloat(item.goods_weight)
+          goods_volume += parseFloat(item.goods_volume)
+        })
+        const all = ele.data[0]
+        delete ele.data
+        all.goods_piece = goods_piece
+        all.goods_weight = goods_weight
+        all.goods_volume = goods_volume
+        return all
+      })
+      this.tableData3 = xx
+    },
+    aa() {
+    },
+    save() { // 点击弹窗出现表格
+      let id = ''
+      let idl = ''
+      const obj = ''
+      const ri = true
+      const _this = this
+      const mxArr = []
+      if (this.splitSelection == undefined || this.splitSelection.lenght <= 0) {
+        this.$alert('请勾选货物明细', '', {
+          confirmButtonText: '确定'
+        })
+      } else {
+        //
+        this.dialogTableVisible = false
+        const leftTable = storage.getSessionStorage('leftTable')
+
+        leftTable.forEach((ele, index) => { // 遍历左侧详情数据
+          ele.stocks.forEach((ite, key) => { // 便利运单明细
+            _this.splitSelection.forEach((item, i) => { // 便利弹窗选中的明细
+              if (item.stock_id == ite.stock_id) {
+                ite.goods_piece = ite.goods_piece - item.goods_piece
+                mxArr.push(ele)
+                id = item.manifest_id
+                idl = item.manifestdtl_id
+              }
+            })
+          })
+        })
+        storage.setSessionStorage('leftTable', leftTable) // 存改过的值到session
+        storage.setSessionStorage(idl, _this.splitSelection) // 存储弹窗修改的数据
+        this.addInfo(leftTable) // 重新渲染左侧列表
+
+        this.splitSelection.map(ele => { // 把第四个表格选中的数据放到一起
+          this.table3Info.push(ele)
+        })
+
+        // 把第三个表格的数据放到第二个表格属性datas里面 并计算第三个表格的件数
+        let datas = this.tableData2[this.table2RadioSelectIndex].datas
+        if (datas == null || datas == undefined || datas == '') {
+          datas = this.table3Info
+        } else {
+          datas.push(...this.table3Info)
+        }
+
+        this.tableData2[this.table2RadioSelectIndex].datas = datas
+        this.addTableData3() // 整合table3的数据 把相同的mainfast_id放到一起
+        this.renderTableData3() // 渲染table3 的数据
+        this.getData4Num()
+        this.table3Info = []
+      }
+    },
+    addTableData3() { // 整合table3的数据 把相同的mainfast_id放到一起
+      let arr = this.tableData2[this.table2RadioSelectIndex].datas
+      if (arr) {
+
+      } else {
+        arr = []
+      }
+      var map = {}, dest = [] // dest就是处理过后的数据
+      for (let i = 0; i < arr.length; i++) {
+        var ai = arr[i]
+        if (!map[ai.manifest_id]) {
+          dest.push({
+            manifest_id: ai.manifest_id,
+
+            data: [ai]
+          })
+          map[ai.manifest_id] = ai
+        } else {
+          for (let j = 0; j < dest.length; j++) {
+            var dj = dest[j]
+            if (dj.manifest_id == ai.manifest_id) {
+              dj.data.push(ai)
+              break
+            }
+          }
+        }
+      }
+      storage.setSessionStorage('table3', dest)
+    },
+    renderTableData3() { // 渲染table 3的数据
+      const aa = storage.getSessionStorage('table3')
+      const arrx = []
+      const xx = aa.map(ele => {
+        var goods_piece = 0, goods_weight = 0, goods_volume = 0
+
+        ele.data.forEach(item => {
+          goods_piece += parseFloat(item.goods_piece)
+          goods_weight += parseFloat(item.goods_weight)
+          goods_volume += parseFloat(item.goods_volume)
+        })
+        const all = ele.data[0]
+        delete ele.data
+        all.goods_piece = goods_piece
+        all.goods_weight = goods_weight
+        all.goods_volume = goods_volume
+        return all
+      })
+      this.tableData3 = xx
+    },
+    getData4Num() { // 获取第三个table的件数的值
+      const num = this.tableData3.length
+      this.tableData2[this.table2RadioSelectIndex].num = num
+    },
+    split_single(row, column, cell, event) {
+      const id = row.manifest_id, _this = this
+      if (this.openColumnSearch) {
+        return false
+      }
+      if (cell.cellIndex == 2) {
+        if (this.preItem.length <= 0) {
+          this.$alert('请勾选卸货网点”', '', {
+            confirmButtonText: '确定'
+          })
+          this.$refs.multipleTable_list.clearSelection()
+          return false
+        } else {
+          let info = ''
+          const getLeftTable = storage.getSessionStorage('leftTable')
+          const table4Info = getLeftTable.map(ele => {
+            if (id == ele.manifest.manifest_id) {
+              ele.stocks.map(item => {
+                const a = Object.assign(item, ele.manifest)
+
+                return a
+              })
+              info = ele.stocks
+            }
+          })
+          console.log(table4Info,info)
+          _this.tableData4 = info
+          this.dialogTableVisible = true
+        }
+      }
+    },
+    GetManifestInfo(val1) { // 点击运单号获取运单明细
+      const _this = this
+      const data1 = {
+        ManifestID: val1,
+        orgId: this.Create_Org_ID
+      }
+      axios.post(url.apiUrl() + '/api/Departure/GetDepartureToast', data1)
+        .then(function(val) {
+          if (val.data.error === '') {
+            _this.tableData4 = val.data.data
+
+            storage.setSessionStorage(val1, val.data.data)
+          } else {
+            _this.$message.error(val.data.error)
+          }
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    handleClick(tab, event) {
+      this.tab_show = tab.index
+    },
+    editInsert() { // 新增
+      if (this.editId) {
+
+      } else {
+        // 清空数据
+        this.result = {}
+      }
+    },
+    editEave() { // 保存
+      this.disabledInput = true
+      this.sendMessage()
+    },
+    sendMessage() { // 保存数据到后台
+      let date = new Date(), _this = this
+      const o = {
+          'y': date.getFullYear(), // 年份
+          'M': date.getMonth() + 1, // 月份
+          'd': date.getDate(), // 日
+          'h': date.getHours(), // 小时
+          'm': date.getMinutes(), // 分
+          's': date.getSeconds(), // 秒
+          'q': Math.floor((date.getMonth() + 3) / 3), // 季度
+          'S': date.getMilliseconds() // 毫秒
+        }, time = o.y + '-' + o.M + '-' + o.d + ' ' + o.h + ':' + o.m + ':' + o.s
+      let r_Departure_Orgs = [], departure_Inventories = [] // 卸货网点   运单明细
+      this.tableData2.forEach(item => {
+        r_Departure_Orgs.push({ Unloading_Org_Id: item.site,departure_arrivalorg_id:item.departure_arrivalorg_id })
+        if (item.datas) {
+          item.datas.forEach(ele => {
+            
+            const a = {
+              Departure_Inventory_Id: (ele.departure_inventory_id ? ele.departure_inventory_id : "") ,
+              Stock_Id: ele.stock_id,
+              Manifest_Id: ele.manifest_id,
+              Manifestdtl_Id: ele.manifestdtl_id,
+              Unloading_Org_Id: item.site,
+              Departure_Id: this.$route.params.id,
+              Goods_Name: ele.goods_name,
+              Goods_Package: ele.goods_package,
+              Goods_Piece: ele.goods_piece,
+              Goods_Weight: ele.goods_weight,
+              Goods_Volume: ele.goods_volume
+            }
+            departure_Inventories.push(a)
+          })
+        }
+      })
+      const data1 = {
+        departure: {
+          Departure_ID: this.$route.params.id,
+          Contract_Code: this.dispatching.contractNumber,
+          Departure_Date: this.dispatching.date,
+          Departure_State_Id: this.dispatching.dispatchingState,
+          User_Id: this.dispatching.originator,
+          Departure_Org_Id: this.dispatching.site,
+          Departure_Consigntype_Id: this.dispatching.transport_value,
+          Carrier_Name: this.dispatching.carrier,
+          Plate_Number: this.dispatching.number,
+          Driver_Name: this.dispatching.driver,
+          Driver_Phone: this.dispatching.phone,
+          Driver_Idcard: '',
+          Departure_Comment: this.dispatching.remarks,
+          Freight_Cashpay: this.result.xf,
+          Freight_Collect: this.result.df,
+          Freight_Backpay: this.result.hf,
+          Fuelcard_Number: this.result.kahao,
+          Fuelcard_Org: this.result.commany,
+          Fuelcard_Driver: this.result.yk,
+          Cover_Charge: this.result.fb,
+          Issurance_Charge: this.result.bx,
+          Handling_Charge: this.result.zx,
+          Landing_Charge: this.result.ld,
+          Other_Charge: this.result.other,
+          Other_Charge_Comment: this.result.explain,
+          Total_Charge: this.result.moneyTotal,
+          Create_Time: time,
+          Create_org_ID: this.Create_Org_ID,
+          Edit_User_ID: this.Create_User_ID,
+          Edit_Time: time,
+          Edit_Org_ID: this.Create_Org_ID
+        },
+        r_Departure_Orgs: r_Departure_Orgs,
+        departure_Inventories: departure_Inventories,
+        departure_arrivalorg_ids:this.deleteArr,
+        departure_inventory_ids:this.departure_inventory_ids
+      }
+      axios.post(url.apiUrl() + '/api/Departure/DepartureUpdate', data1)
+        .then(function(val) {
+          if (val.data.error === '') {
+            _this.$message({
+              type: 'success',
+              message: '保存成功!'
+            })
+            _this.$router.push({ path: '/operationFlow/allotcar' })
+          } else {
+            _this.$message.error(val.data.error)
+          }
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    editUpdate() { // 修改
+      this.disabledInput = false
+    },
+    editDelete() { // 删除
+      this.$confirm('是否删除当前运单', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        if(this.dispatching.dispatchingState == 10){
+          this.deleteFC();
+        }else{
+          this.$message.error({
+            type:"warning",
+            message:"不可删除!"
+          })
+        }
+        
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        })
+      })
+    },
+    deleteFC(){  // 删除发车
+      const id = this.$route.params.id,_this = this;
+      let ids = [];
+      ids.push(id);
+      let data1 = {
+        Ids:ids
+      }
+      axios.post(url.apiUrl() + '/api/Departure/DeleteDeparture' , ids)
+      .then(function(val) {
+        if (val.data.error === '') {
+          _this.$message({
+            type:"success",
+            message:"删除成功!"
+          })
+          _this.$router.push({ path: '/operationFlow/allotcar' });
+        } else {
+          _this.$message.error(val.data.error)
+        }
+      })
+      .catch(function(data) {
+        _this.$message.error(data.data.error)
+      })
+    },
+    editTableInsert(row, column, cell, event) {
+    },
+    editTableDelete(i) { // 删除列表数据
+      this.result.list.splice(i, 1)
+    },
+    CalculationMoney() {
+      this.result.moneyTotal =
+      parseInt(this.result.xf ? this.result.xf : 0) +
+      parseInt(this.result.df ? this.result.df : 0) +
+      parseInt(this.result.hf ? this.result.hf : 0) +
+      parseInt(this.result.yk ? this.result.yk : 0) +
+      parseInt(this.result.fb ? this.result.fb : 0) +
+      parseInt(this.result.bx ? this.result.bx : 0) +
+      parseInt(this.result.zx ? this.result.zx : 0) +
+      parseInt(this.result.ld ? this.result.ld : 0) +
+      parseInt(this.result.other ? this.result.other : 0)
+    },
+    fetchData() {
+      const id = this.$route.params.id
+      if (id) {
+        // 请求数据
+        this.isEdit = true
+        this.editId = true
+        this.GetDepartureById(id) // 获取tab页 派车对应的数据 以及卸货网点对应的数据
+        //this.GetDepartureInventory(id) // 获取tab页 本车清单对应的数据
+        this.getDepartureInfo(id, this.Create_Org_ID) // 获取tab页 卸货网点对应的数据 本车清单对应的数据
+      } else {
+        this.editId = false
+        // 新增数据
+      }
+    },
+    GetDepartureInventory(val) { // 根据路由id获取本车清单
+      const _this = this
+      axios.get(url.apiUrl() + '/api/Departure/GetDepartureInventory?departure_id=' + val)
+        .then(function(val) {
+          if (val.data.error === '') {
+            _this.tableData = val.data.data;
+          } else {
+            _this.$message.error(val.data.error)
+          }
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    formatJson(filterVal, jsonData) {
+      return jsonData.map(v => filterVal.map(j => {
+        if (j === 'timestamp') {
+          return parseTime(v[j])
+        } else {
+          return v[j]
+        }
+      }))
+    },
+    getDepartureInfo(id, id1) { // 获取tab页 卸货网点对应的数据
+      const _this = this
+      const data1 = {
+        orgid: id1,
+        departure_id: id,
+        queryType: 2
+
+      }
+      axios.post(url.apiUrl() + '/api/Departure/GetDepartureLeftDetail', data1)
+        .then(function(val) {
+          if (val.data.error === '') {
+            const dataInfo = val.data.data
+            const table2Info = _this.tableData2;
+            let arr = [];
+            dataInfo.forEach(ele => {  // 本车清单的数据
+              const stocks = ele.departure_Inventories
+              stocks.forEach(item => {
+                const a = Object.assign(item, ele.manifest);
+                arr.push(a)
+              })
+            })
+            _this.tableData = arr ;
+
+            table2Info.forEach(i => { // 把卸货网点对应的数据整合
+              dataInfo.forEach(ele => {
+                const stocks = ele.departure_Inventories
+                stocks.forEach(item => {
+                  if (item.unloading_org_id == i.site) {
+                    const a = Object.assign(item, ele.manifest)
+                    i.datas.push(a)
+                  }
+                })
+              })
+            })
+            console.log("table2Info",_this.tableData2)
+          // _this.addInfo(dataInfo,3);
+          // let newTable3 = [];
+          // dataInfo.map(ele => {
+          //   const data = []
+          //   ele.stocks.map(item => {
+          //     const a = Object.assign(item, ele.manifest)
+          //     data.push(a)
+          //     newTable3.push(a)
+          //   })
+          // })
+          // let datas = this.tableData2[this.table2RadioSelectIndex].datas
+          // if (datas == null || datas == undefined || datas == '') {
+          //   datas = newTable3
+          // } else {
+          //   datas.push(...newTable3)
+          // }
+          // storage.setSessionStorage('leftTable', [])
+          // this.addInfo([])
+          // this.tableData2[this.table2RadioSelectIndex].datas = datas
+          } else {
+            _this.$message.error(val.data.error)
+          }
+        })
+        .catch(function(data) {
+          _this.$message.error(data.data.error)
+        })
+    },
+    bb(val) {
+    },
+    GetDepartureById(id) { // 根据路由获取表头信息
+      const _this = this, data1 = {
+        departure_id: id
+      }
+      axios.post(url.apiUrl() + '/api/Departure/DepartureById?departure_id=' + id)
+        .then(function(msg) {
+          if (msg.data.error === '') {
+            // _this.tableData = val.data.data
+            _this.assignment(msg.data.data.departurehead)
+            // 卸货网点
+            const xhwd = msg.data.data.departureOrgList
+            const table2 = []
+            xhwd.forEach((ele, index) => {
+              const obj = {
+                index: index + 1,
+                'site': ele.unloading_org_id,
+                'num': ele.count,
+                "departure_arrivalorg_id":ele.departure_arrivalorg_id,
+                datas: []
+              }
+              table2.push(obj)
+            })
+            
+            _this.tableData2 = table2;
+            console.log("table2",table2)
+          } else {
+            _this.$message.error(msg.data.error)
+          }
+        })
+        .catch(function(msg) {
+          _this.$message.error(msg.data.error)
+        })
+    },
+    assignment(val) { // 赋值操作
+      this.dispatching.contractNumber = val.contract_code
+      this.dispatching.dispatchingState = val.departure_state_id
+      this.dispatching.originator = val.user_id
+      this.dispatching.site = val.departure_org_id
+      this.dispatching.date = val.departure_date
+      this.dispatching.transport_value = val.departure_consigntype_id
+      this.dispatching.carrier = val.carrier_name
+      this.dispatching.number = val.plate_number
+      this.dispatching.driver = val.driver_name
+      this.dispatching.phone = val.driver_phone
+      this.dispatching.remarks = val.departure_comment
+      this.result.xf = val.freight_cashpay
+      this.result.df = val.freight_collect
+      this.result.hf = val.freight_backpay
+      this.result.kahao = val.fuelcard_number
+      this.result.commany = val.fuelcard_org
+      this.result.yk = val.fuelcard_driver
+      this.result.fb = val.cover_charge
+      this.result.bx = val.issurance_charge
+      this.result.zx = val.handling_charge
+      this.result.ld = val.landing_charge
+      this.result.other = val.other_charge
+      this.result.explain = val.other_charge_comment
+      this.result.moneyTotal = val.total_charge
+    }
+  },
+
+  deactivated() { // 页面离开的时候执行清除缓存操作
+    sessionStorage.clear()
+    this.tableData2 = []
+    this.tableData3 = []
+  }
+}
+</script>
+
+<style>
+.app-container{
+  /* max-height: 550px;overflow-y:scroll; */
+  padding:0 20px ;
+}
+.edit-page-modula{font-size: 10px}
+.el-input-group__prepend{
+  background-color: #FFF;border:none;padding: 0px 5px 0px 5px;
+}
+.radio-label {
+  font-size: 8px;
+  color: #606266;
+  padding: 0 5px 0 5px;
+}
+
+.edit-page-modular{border:1px solid #A1C4E7;margin: 0px 0px 8px 0px}
+.edit-page-modular-allotcar{margin: 8px 0px 8px 0px}
+.edit-page-modular-allotcar .list-tit{padding: }
+.hideIcon .el-input--medium .el-input__icon{display: none}
+.edit-page-modular .Edit-Title{text-align: center;margin: 5px;padding: 0px 50px 0px 50px;color:#666;font-size: 1.5em}
+.edit-page-modular .el-input--medium .el-input__inner{
+  padding: 2px 5px 2px 5px;height: 25px;line-height: 25px;border-radius: 0px;border:none;border-bottom:1px solid #ccc;
+}
+.AllotcarAdd .el-table--small td,   .AllotcarAdd .el-table--small th{
+    padding: 0px;
+}
+.el-table th>.cell{
+    white-space: nowrap;
+    text-overflow: ellipsis;
+ }
+ .aa1 .el-table__body-wrapper{
+        height: 94%;
+      }
+    
+</style>
+<style lang="scss" scoped>
+.buttonBox{
+    padding: 15px;
+}
+.searchCondition{
+    padding: 0 15px;
+}
+.tableWraper{
+    width: 100%;
+    overflow-x: hidden;
+}
+.table{
+    height: 100%;
+}
+.box{
+    height: 100%;
+}
+.l{
+    float: left;
+}
+.r{
+    float:right;
+}
+
+ 
+.clearfix:before, .clearfix:after { content: " "; display: block; height: 0; overflow: hidden; }  
+.clearfix:after { clear: both; }  
+.clearfix { zoom: 1; } 
+.AllotcarAdd{
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+.tableMaxHeight{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    .aa1{
+      flex: 1;
+      .el-table__body-wrapper{
+        height: 97%;
+      }
+    }
+}
+</style>

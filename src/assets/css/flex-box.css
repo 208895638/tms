@@ -1,0 +1,248 @@
+
+/* flex box */
+/* 采用 Flex 布局的元素，称为 Flex 容器（flex container），简称"容器"。
+它的所有子元素自动成为容器成员，称为 Flex 项目（flex item），简称"项目"。 */
+.d-flex {
+  display: -webkit-box !important;
+  display: -ms-flexbox !important;
+  display: flex !important;
+}
+
+.d-inline-flex {
+  display: -webkit-inline-box !important;
+  display: -ms-inline-flexbox !important;
+  display: inline-flex !important;
+}
+/* flex-direction属性决定主轴的方向（即flex项目的排列方向） */
+.flex-row {
+  -webkit-box-orient: horizontal !important;
+  -webkit-box-direction: normal !important;
+  -ms-flex-direction: row !important;
+  flex-direction: row !important;
+}
+
+.flex-column {
+  -webkit-box-orient: vertical !important;
+  -webkit-box-direction: normal !important;
+  -ms-flex-direction: column !important;
+  flex-direction: column !important;
+}
+
+.flex-row-reverse {
+  -webkit-box-orient: horizontal !important;
+  -webkit-box-direction: reverse !important;
+  -ms-flex-direction: row-reverse !important;
+  flex-direction: row-reverse !important;
+}
+
+.flex-column-reverse {
+  -webkit-box-orient: vertical !important;
+  -webkit-box-direction: reverse !important;
+  -ms-flex-direction: column-reverse !important;
+  flex-direction: column-reverse !important;
+}
+/* flex-wrap属性 */
+/* 它可能取三个值。
+nowrap（默认）：不换行。
+wrap：换行，第一行在上方。
+wrap-reverse：换行，第一行在下方。 */
+.flex-nowrap {
+  -ms-flex-wrap: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+
+.flex-wrap {
+  -ms-flex-wrap: wrap !important;
+  flex-wrap: wrap !important;
+}
+
+.flex-wrap-reverse {
+  -ms-flex-wrap: wrap-reverse !important;
+  flex-wrap: wrap-reverse !important;
+}
+/* justify-content属性定义了项目在主轴上的对齐方式。5个值 */
+/* flex-start（默认值）：左对齐
+flex-end：右对齐
+center： 居中
+space-between：两端对齐，项目之间的间隔都相等。
+space-around：每个项目两侧的间隔相等。所以，项目之间的间隔比项目与边框的间隔大一倍。 */
+.justify-content-start {
+  -webkit-box-pack: start !important;
+  -ms-flex-pack: start !important;
+  justify-content: flex-start !important;
+}
+
+.justify-content-end {
+  -webkit-box-pack: end !important;
+  -ms-flex-pack: end !important;
+  justify-content: flex-end !important;
+}
+
+.justify-content-center {
+  -webkit-box-pack: center !important;
+  -ms-flex-pack: center !important;
+  justify-content: center !important;
+}
+
+.justify-content-between {
+  -webkit-box-pack: justify !important;
+  -ms-flex-pack: justify !important;
+  justify-content: space-between !important;
+}
+
+.justify-content-around {
+  -ms-flex-pack: distribute !important;
+  justify-content: space-around !important;
+}
+/* align-items属性定义项目在交叉轴上如何对齐。 */
+/* flex-start：交叉轴的起点对齐。
+   flex-end：交叉轴的终点对齐。
+   center：交叉轴的中点对齐。
+   baseline: 项目的第一行文字的基线对齐。
+   stretch（默认值）：如果项目未设置高度或设为auto，将占满整个容器的高度。 */
+.align-items-start {
+  -webkit-box-align: start !important;
+  -ms-flex-align: start !important;
+  align-items: flex-start !important;
+}
+
+.align-items-end {
+  -webkit-box-align: end !important;
+  -ms-flex-align: end !important;
+  align-items: flex-end !important;
+}
+
+.align-items-center {
+  -webkit-box-align: center !important;
+  -ms-flex-align: center !important;
+  align-items: center !important;
+}
+
+.align-items-baseline {
+  -webkit-box-align: baseline !important;
+  -ms-flex-align: baseline !important;
+  align-items: baseline !important;
+}
+
+.align-items-stretch {
+  -webkit-box-align: stretch !important;
+  -ms-flex-align: stretch !important;
+  align-items: stretch !important;
+}
+/* align-content属性定义了多根轴线的对齐方式。如果项目只有一根轴线，该属性不起作用。 */
+/* flex-start：与交叉轴的起点对齐。
+   flex-end：与交叉轴的终点对齐。
+   center：与交叉轴的中点对齐。
+   space-between：与交叉轴两端对齐，轴线之间的间隔平均分布。
+   space-around：每根轴线两侧的间隔都相等。所以，轴线之间的间隔比轴线与边框的间隔大一倍。
+   stretch（默认值）：轴线占满整个交叉轴。 */
+.align-content-start {
+  -ms-flex-line-pack: start !important;
+  align-content: flex-start !important;
+}
+
+.align-content-end {
+  -ms-flex-line-pack: end !important;
+  align-content: flex-end !important;
+}
+
+.align-content-center {
+  -ms-flex-line-pack: center !important;
+  align-content: center !important;
+}
+
+.align-content-between {
+  -ms-flex-line-pack: justify !important;
+  align-content: space-between !important;
+}
+
+.align-content-around {
+  -ms-flex-line-pack: distribute !important;
+  align-content: space-around !important;
+}
+
+.align-content-stretch {
+  -ms-flex-line-pack: stretch !important;
+  align-content: stretch !important;
+}
+/* 项目属性 */
+/* 共6个  */
+/* 1. align-self属性允许单个项目有与其他项目不一样的对齐方式，
+   可覆盖align-items属性。默认值为auto，表示继承父元素的align-items属性，
+   如果没有父元素，则等同于stretch。 */
+.align-self-auto {
+  -ms-flex-item-align: auto !important;
+  align-self: auto !important;
+}
+
+.align-self-start {
+  -ms-flex-item-align: start !important;
+  align-self: flex-start !important;
+}
+
+.align-self-end {
+  -ms-flex-item-align: end !important;
+  align-self: flex-end !important;
+}
+
+.align-self-center {
+  -ms-flex-item-align: center !important;
+  align-self: center !important;
+}
+
+.align-self-baseline {
+  -ms-flex-item-align: baseline !important;
+  align-self: baseline !important;
+}
+
+.align-self-stretch {
+  -ms-flex-item-align: stretch !important;
+  align-self: stretch !important;
+}
+
+
+
+/* 3. flex-grow属性定义项目的放大比例，默认为0，即如果存在剩余空间，也不放大。 */
+.flex-grow {
+  flex-grow: 1;
+}
+/* 4. flex-shrink属性定义了项目的缩小比例，默认为1，即如果空间不足，该项目将缩小。
+   如果所有项目的flex-shrink属性都为1，当空间不足时，都将等比例缩小。
+   如果一个项目的flex-shrink属性为0，其他项目都为1，则空间不足时，前者不缩小。
+   负值对该属性无效。 */
+.flex-shrink {
+  flex-shrink: 0; 
+}
+/* 5. flex */
+/* flex属性是flex-grow, flex-shrink 和 flex-basis的简写，
+   默认值为0 1 auto。后两个属性可选。 
+   该属性有两个快捷值：auto (1 1 auto) 和 none (0 0 auto)。*/
+.flex-auto{
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+.flex-none{
+  -webkit-box-flex: none;
+  -ms-flex: none;
+  flex: none;
+}
+/* 6. flex-basis */
+/* flex-basis属性定义了在分配多余空间之前，项目占据的主轴空间（main size）。
+   浏览器根据这个属性，计算主轴是否有多余空间。它的默认值为auto，即项目的本来大小。 */
+
+/*
+项目的公共样式
+*/
+.el-form-item{
+  margin-bottom: 0px!important;
+}
+.buttonBox{
+  padding: 15px 15px 0 15px!important;
+}
+.cell{
+  white-space: nowrap!important;
+}
+.el-scrollbar__view{
+    height: 100%!important;
+}
